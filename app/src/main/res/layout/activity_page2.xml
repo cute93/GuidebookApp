@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal">
+
+    <!-- Left: Problem reference -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:background="#F0F0F0">
+
+        <TextView
+            android:id="@+id/tvProblemTitle2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"
+            android:text="문제 제목"/>
+
+        <ImageView
+            android:id="@+id/ivProblemRef"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:scaleType="fitCenter"
+            android:background="#D9D9D9"/>
+    </LinearLayout>
+
+    <!-- Right: Drawing area -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1.5"
+        android:orientation="vertical">
+
+        <!-- Toolbar -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#EEEEEE">
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="4dp"
+                android:gravity="center_vertical">
+
+                <Button android:id="@+id/btnColorBlack" android:layout_width="40dp" android:layout_height="40dp"
+                    android:backgroundTint="#000000" android:layout_margin="4dp"/>
+                <Button android:id="@+id/btnColorBlue" android:layout_width="40dp" android:layout_height="40dp"
+                    android:backgroundTint="#2196F3" android:layout_margin="4dp"/>
+                <Button android:id="@+id/btnColorRed" android:layout_width="40dp" android:layout_height="40dp"
+                    android:backgroundTint="#F44336" android:layout_margin="4dp"/>
+                <Button android:id="@+id/btnEraser" android:layout_width="wrap_content" android:layout_height="40dp"
+                    android:text="지우개" android:textSize="12sp" android:layout_margin="4dp"/>
+                <Button android:id="@+id/btnUndo" android:layout_width="wrap_content" android:layout_height="40dp"
+                    android:text="되돌리기" android:textSize="12sp" android:layout_margin="4dp"/>
+                <Button android:id="@+id/btnClear" android:layout_width="wrap_content" android:layout_height="40dp"
+                    android:text="전체삭제" android:textSize="12sp" android:layout_margin="4dp"/>
+
+                <com.google.android.material.slider.Slider
+                    android:id="@+id/sbStroke"
+                    android:layout_width="120dp"
+                    android:layout_height="wrap_content"
+                    android:valueFrom="1"
+                    android:valueTo="20"
+                    android:value="4"
+                    android:layout_margin="4dp"/>
+            </LinearLayout>
+        </HorizontalScrollView>
+
+        <!-- Drawing canvas -->
+        <com.example.guidebook.views.DrawingView
+            android:id="@+id/drawingView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="#FFFFFF"/>
+
+        <!-- Save / Upload buttons -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:background="#EEEEEE">
+
+            <Button
+                android:id="@+id/btnSaveDraft"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="작성내용 저장하기"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/btnUpload"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="작성내용 업로드하기"
+                android:backgroundTint="#3F51B5"/>
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone"/>
+    </LinearLayout>
+
+</LinearLayout>

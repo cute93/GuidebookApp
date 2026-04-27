@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center_horizontal">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="문제 이미지 업로드 (교사)"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="24dp"/>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="문제 제목 (예: 3월 모의고사 영어 1번)"
+        android:layout_marginBottom="12dp">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="과목 (예: 영어, 수학)"
+        android:layout_marginBottom="20dp">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etSubject"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Image preview area -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:background="#E0E0E0"
+        android:layout_marginBottom="16dp">
+
+        <ImageView
+            android:id="@+id/ivPreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="fitCenter"/>
+
+        <TextView
+            android:id="@+id/tvImageHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="이미지를 선택하세요"
+            android:textColor="#888888"/>
+    </FrameLayout>
+
+    <Button
+        android:id="@+id/btnSelectImage"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="이미지 파일 선택"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_marginBottom="12dp"/>
+
+    <Button
+        android:id="@+id/btnUploadProblem"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="문제 업로드 하기"
+        android:backgroundTint="#3F51B5"/>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"/>
+
+</LinearLayout>

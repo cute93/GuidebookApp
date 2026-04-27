@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "70725820600",
+    "project_id": "figma-coteaching",
+    "storage_bucket": "figma-coteaching.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:70725820600:android:bdce4ee5a3ef6fcf37944d",
+        "android_client_info": {
+          "package_name": "com.example.guidebook"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBStmVDRjhHHikldW_OeTGrzj2uXuMTPAs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

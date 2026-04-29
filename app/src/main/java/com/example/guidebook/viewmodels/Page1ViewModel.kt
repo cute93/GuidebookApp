@@ -79,4 +79,6 @@ class Page1ViewModel(
     fun refreshNotes() {
         currentProblem?.let { loadNotes(it.id) }
     }
+
+    fun logout() = repo.logout()
 }

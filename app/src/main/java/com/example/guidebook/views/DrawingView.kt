@@ -99,7 +99,7 @@ class DrawingView @JvmOverloads constructor(
 
     fun undo() {
         if (paths.isNotEmpty()) {
-            paths.removeLast()
+            paths.removeAt(paths.size - 1)
             redrawAll()
         }
     }

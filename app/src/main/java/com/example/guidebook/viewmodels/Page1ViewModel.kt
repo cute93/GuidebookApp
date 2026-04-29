@@ -10,9 +10,9 @@ import com.example.guidebook.models.UserNote
 import com.example.guidebook.repository.GuidebookRepository
 import kotlinx.coroutines.launch
 
-class Page1ViewModel : ViewModel() {
-
-    private val repo = GuidebookRepository()
+class Page1ViewModel(
+    private val repo: GuidebookRepository = GuidebookRepository()
+) : ViewModel() {
 
     private val _problems = MutableLiveData<List<Problem>>()
     val problems: LiveData<List<Problem>> = _problems

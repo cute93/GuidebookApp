@@ -8,12 +8,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.guidebook.repository.GuidebookRepository
 import kotlinx.coroutines.launch
 
-class Page2ViewModel : ViewModel() {
+class Page2ViewModel(
+    private val repo: GuidebookRepository = GuidebookRepository()
+) : ViewModel() {
 
-    private val repo = GuidebookRepository()
-
-    private val _saveState = MutableLiveData<SaveState>()
-    val saveState: LiveData<SaveState> = _saveState
+    private val _saveState = MutableLiveData<SaveState?>()
+    val saveState: LiveData<SaveState?> = _saveState
 
     sealed class SaveState {
         object DraftSaved : SaveState()

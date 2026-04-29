@@ -1,6 +1,7 @@
 package com.example.guidebook.repository
 
 import android.graphics.Bitmap
+import com.example.guidebook.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -14,10 +15,9 @@ import java.security.MessageDigest
 
 object CloudinaryHelper {
 
-    // ⚠️ Cloudinary Dashboard에서 복사한 값으로 교체하세요
-    private const val CLOUD_NAME  = "dulqmyj05"
-    private const val API_KEY     = "135822862878268"
-    private const val API_SECRET  = "ycPjrxl78C6cM7IJL-bU2f82IXY"
+    private val CLOUD_NAME  = BuildConfig.CLOUDINARY_CLOUD_NAME
+    private val API_KEY     = BuildConfig.CLOUDINARY_API_KEY
+    private val API_SECRET  = BuildConfig.CLOUDINARY_API_SECRET
 
     private val client = OkHttpClient()
 

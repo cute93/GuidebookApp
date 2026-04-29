@@ -10,9 +10,9 @@ import com.example.guidebook.models.Problem
 import com.example.guidebook.repository.GuidebookRepository
 import kotlinx.coroutines.launch
 
-class Page3ViewModel : ViewModel() {
-
-    private val repo = GuidebookRepository()
+class Page3ViewModel(
+    private val repo: GuidebookRepository = GuidebookRepository()
+) : ViewModel() {
 
     private val _uploadState = MutableLiveData<UploadState?>()
     val uploadState: LiveData<UploadState?> = _uploadState

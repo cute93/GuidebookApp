@@ -1,0 +1,33 @@
+# Local machine configuration — never commit
+local.properties
+
+# Keystore — never commit
+*.jks
+*.keystore
+
+# Build outputs
+build/
+app/build/
+.gradle/
+
+# IntelliJ / Android Studio
+*.iml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/gradle.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/libraries
+.idea/jarRepositories.xml
+.idea/.name
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin / Java
+*.class
+*.jar
+*.aar
+
+# macOS
+.DS_Store

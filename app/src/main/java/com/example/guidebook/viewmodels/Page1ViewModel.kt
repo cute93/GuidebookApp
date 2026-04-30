@@ -39,11 +39,17 @@ class Page1ViewModel(
 
     private fun loadProblems() {
         viewModelScope.launch {
-            repo.getProblems().onSuccess { list ->
-                _problems.value = list
-                if (list.isNotEmpty()) loadNotes(list[0].id)
-            }.onFailure {
-                _error.value = it.message
+            repo.observeProblems().collect { result ->
+                result.onSuccess { list ->
+                    val prevProblemId = currentProblem?.id
+                    _problems.value = list
+                    val newProblemId = list.getOrNull(_currentIndex.value ?: 0)?.id
+                    if (newProblemId != null && newProblemId != prevProblemId) {
+                        loadNotes(newProblemId)
+                    }
+                }.onFailure {
+                    _error.value = it.message
+                }
             }
         }
     }

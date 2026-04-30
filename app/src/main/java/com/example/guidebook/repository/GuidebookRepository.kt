@@ -7,6 +7,9 @@ import com.example.guidebook.models.Problem
 import com.example.guidebook.models.UserNote
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import java.io.ByteArrayOutputStream
 import java.util.UUID
@@ -34,11 +37,20 @@ class GuidebookRepository {
 
     // ── Problems ──────────────────────────────────────────────────────────────
 
-    suspend fun getProblems(): Result<List<Problem>> = runCatching {
-        db.collection("problems")
+    fun observeProblems(): Flow<Result<List<Problem>>> = callbackFlow {
+        val listener = db.collection("problems")
             .orderBy("createdAt")
-            .get().await()
-            .documents.mapNotNull { it.toObject(Problem::class.java) }
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(Result.failure(error))
+                    return@addSnapshotListener
+                }
+                val list = snapshot?.documents
+                    ?.mapNotNull { it.toObject(Problem::class.java) }
+                    ?: emptyList()
+                trySend(Result.success(list))
+            }
+        awaitClose { listener.remove() }
     }
 
     /**

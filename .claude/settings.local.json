@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; .\\\\gradlew.bat lint 2>&1)",
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; .\\\\gradlew.bat --stop 2>&1; Start-Sleep -Seconds 3; Write-Output \"Daemons stopped\")",
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; .\\\\gradlew.bat test --no-daemon 2>&1)",
+      "PowerShell(& \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\\\\bin\\\\keytool.exe\" -genkey -v -keystore \"C:\\\\Users\\\\FairyTail\\\\StudioProjects\\\\GuidebookApp\\\\guidebook.jks\" -alias guidebook -keyalg RSA -keysize 2048 -validity 10000 -storepass wooseok -keypass wooseok -dname \"CN=GuidebookApp, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=KR\" 2>&1)",
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; .\\\\gradlew.bat assembleRelease --no-daemon 2>&1)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; $env:PATH = \"$env:JAVA_HOME\\\\bin;$env:PATH\"; .\\\\gradlew :app:compileDebugKotlin 2>&1 | Select-Object -Last 30)",
+      "PowerShell($env:JAVA_HOME = \"C:\\\\Program Files\\\\Android\\\\Android Studio\\\\jbr\"; $env:PATH = \"$env:JAVA_HOME\\\\bin;$env:PATH\"; .\\\\gradlew assembleRelease 2>&1 | Select-Object -Last 40)"
+    ]
+  }
+}

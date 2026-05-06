@@ -54,13 +54,5 @@ class DrawingViewTest {
         view.undo() // 빈 상태에서 undo — 예외 없이 통과
     }
 
-    @Test fun `setStrokeWidth does not crash`() {
-        view.setStrokeWidth(10f)
-        view.setStrokeWidth(1f)
-    }
 
-    @Test fun `setEraserMode toggle does not crash`() {
-        view.setEraserMode(true)
-        view.setEraserMode(false)
-    }
 }

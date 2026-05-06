@@ -53,10 +53,6 @@ class Page2Activity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
-        binding.btnSaveDraft.setOnClickListener {
-            Toast.makeText(this, "임시 저장되었습니다.", Toast.LENGTH_SHORT).show()
-        }
-
         binding.btnUpload.setOnClickListener {
             binding.progressBar.visibility = View.VISIBLE
             binding.btnUpload.isEnabled = false

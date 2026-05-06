@@ -6,7 +6,6 @@ data class UserNote(
     val userId: String = "",
     val userName: String = "",
     val role: String = "student",   // "teacher" or "student"
-    val noteImageUrl: String = "",  // uploaded drawing image URL
-    val localPath: String = "",     // temp saved path on device
+    val noteImageUrl: String = "",
     val updatedAt: Long = 0L
 )

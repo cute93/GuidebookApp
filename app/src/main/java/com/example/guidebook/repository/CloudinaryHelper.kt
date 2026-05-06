@@ -21,73 +21,43 @@ object CloudinaryHelper {
 
     private val client = OkHttpClient()
 
-    /**
-     * Bitmap → Cloudinary 업로드 → URL 반환
-     */
-    suspend fun uploadBitmap(bitmap: Bitmap, publicId: String): String =
-        withContext(Dispatchers.IO) {
-            val baos = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG, 90, baos)
-            val bytes = baos.toByteArray()
+    suspend fun uploadBitmap(bitmap: Bitmap, publicId: String): String {
+        val bytes = ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 90, it) }.toByteArray()
+        return upload(bytes, "$publicId.png", "image/png", publicId)
+    }
 
-            val timestamp = (System.currentTimeMillis() / 1000).toString()
-            val signature = generateSignature(publicId, timestamp)
-
-            val requestBody = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart(
-                    "file", "$publicId.png",
-                    bytes.toRequestBody("image/png".toMediaTypeOrNull())
-                )
-                .addFormDataPart("api_key", API_KEY)
-                .addFormDataPart("timestamp", timestamp)
-                .addFormDataPart("public_id", publicId)
-                .addFormDataPart("signature", signature)
-                .build()
-
-            val request = Request.Builder()
-                .url("https://api.cloudinary.com/v1_1/$CLOUD_NAME/image/upload")
-                .post(requestBody)
-                .build()
-
-            val response = client.newCall(request).execute()
-            val body = response.body?.string() ?: error("빈 응답")
-            if (!response.isSuccessful) error("업로드 실패: $body")
-
-            JSONObject(body).getString("secure_url")
-        }
-
-    /**
-     * 이미지 Uri (파일) → Cloudinary 업로드
-     */
     suspend fun uploadBytes(bytes: ByteArray, publicId: String): String =
-        withContext(Dispatchers.IO) {
-            val timestamp = (System.currentTimeMillis() / 1000).toString()
-            val signature = generateSignature(publicId, timestamp)
+        upload(bytes, "$publicId.jpg", "image/jpeg", publicId)
 
-            val requestBody = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart(
-                    "file", "$publicId.jpg",
-                    bytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
-                )
-                .addFormDataPart("api_key", API_KEY)
-                .addFormDataPart("timestamp", timestamp)
-                .addFormDataPart("public_id", publicId)
-                .addFormDataPart("signature", signature)
-                .build()
+    private suspend fun upload(
+        bytes: ByteArray,
+        filename: String,
+        mimeType: String,
+        publicId: String
+    ): String = withContext(Dispatchers.IO) {
+        val timestamp = (System.currentTimeMillis() / 1000).toString()
+        val signature = generateSignature(publicId, timestamp)
 
-            val request = Request.Builder()
-                .url("https://api.cloudinary.com/v1_1/$CLOUD_NAME/image/upload")
-                .post(requestBody)
-                .build()
+        val requestBody = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart("file", filename, bytes.toRequestBody(mimeType.toMediaTypeOrNull()))
+            .addFormDataPart("api_key", API_KEY)
+            .addFormDataPart("timestamp", timestamp)
+            .addFormDataPart("public_id", publicId)
+            .addFormDataPart("signature", signature)
+            .build()
 
-            val response = client.newCall(request).execute()
-            val body = response.body?.string() ?: error("빈 응답")
-            if (!response.isSuccessful) error("업로드 실패: $body")
+        val request = Request.Builder()
+            .url("https://api.cloudinary.com/v1_1/$CLOUD_NAME/image/upload")
+            .post(requestBody)
+            .build()
 
-            JSONObject(body).getString("secure_url")
-        }
+        val response = client.newCall(request).execute()
+        val body = response.body?.string() ?: error("빈 응답")
+        if (!response.isSuccessful) error("업로드 실패: $body")
+
+        JSONObject(body).getString("secure_url")
+    }
 
     private fun generateSignature(publicId: String, timestamp: String): String {
         val toSign = "public_id=$publicId&timestamp=$timestamp$API_SECRET"

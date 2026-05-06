@@ -11,7 +11,6 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
 import com.example.guidebook.databinding.ActivityPage3Binding
-import com.example.guidebook.models.AppUser
 import com.example.guidebook.viewmodels.Page3ViewModel
 
 class Page3Activity : AppCompatActivity() {
@@ -34,8 +33,6 @@ class Page3Activity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityPage3Binding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        val user = intent.getSerializableExtra("user") as? AppUser
 
         binding.btnSelectImage.setOnClickListener {
             imagePickerLauncher.launch("image/*")

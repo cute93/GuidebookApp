@@ -8,7 +8,6 @@ import com.example.guidebook.models.UserNote
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
-import java.io.ByteArrayOutputStream
 import java.util.UUID
 
 class GuidebookRepository {
@@ -20,7 +19,7 @@ class GuidebookRepository {
 
     suspend fun login(email: String, password: String): Result<AppUser> = runCatching {
         val result = auth.signInWithEmailAndPassword(email, password).await()
-        val uid = result.user!!.uid
+        val uid = result.user?.uid ?: error("로그인 정보가 없습니다.")
         getUserProfile(uid) ?: error("사용자 프로필을 찾을 수 없습니다.")
     }
 

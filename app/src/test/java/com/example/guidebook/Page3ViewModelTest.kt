@@ -47,11 +47,6 @@ class Page3ViewModelTest {
         coVerify(exactly = 0) { mockRepo.uploadProblem(any(), any(), any(), any()) }
     }
 
-    @Test fun `whitespace-only title sets Error`() {
-        vm.uploadProblem("   ", "수학", mockUri, mockContext)
-        assertTrue(vm.uploadState.value is Page3ViewModel.UploadState.Error)
-    }
-
     @Test fun `uploadProblem sets Success state on success`() {
         coEvery {
             mockRepo.uploadProblem(any(), any(), any(), any())

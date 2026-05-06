@@ -16,7 +16,6 @@ class Page2ViewModel(
     val saveState: LiveData<SaveState?> = _saveState
 
     sealed class SaveState {
-        object DraftSaved : SaveState()
         object Uploaded : SaveState()
         data class Error(val message: String) : SaveState()
     }

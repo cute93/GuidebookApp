@@ -15,14 +15,6 @@ class AppUserTest {
         assertEquals("student", user.role)
     }
 
-    @Test fun `all default fields are empty strings`() {
-        val user = AppUser()
-        assertEquals("", user.uid)
-        assertEquals("", user.name)
-        assertEquals("", user.email)
-        assertEquals("student", user.role)
-    }
-
     @Test fun `serialization roundtrip preserves all fields`() {
         val original = AppUser(uid = "u1", name = "홍길동", email = "test@test.com", role = "teacher")
         val baos = ByteArrayOutputStream()

@@ -37,7 +37,7 @@ class UserPanelAdapter(
 
     override fun onBindViewHolder(holder: PanelViewHolder, position: Int) {
         val item = panels[position]
-        val label = if (item.role == "teacher") "Teacher's thoughts" else "student thoughts"
+        val label = if (item.role == "teacher") "선생님 풀이" else "학생 풀이"
         holder.tvName.text = "${label}\n${item.userName}"
 
         if (item.note?.noteImageUrl?.isNotEmpty() == true) {
@@ -45,7 +45,7 @@ class UserPanelAdapter(
                 .load(item.note.noteImageUrl)
                 .into(holder.ivNote)
         } else {
-            holder.ivNote.setImageResource(android.R.color.darker_gray)
+            holder.ivNote.setImageDrawable(null)
         }
         holder.btnWrite.setOnClickListener { onWriteClick(item) }
     }

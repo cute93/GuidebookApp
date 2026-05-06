@@ -23,9 +23,6 @@ class Page1ViewModel(
     private val _notes = MutableLiveData<List<UserNote>>()
     val notes: LiveData<List<UserNote>> = _notes
 
-    private val _currentUser = MutableLiveData<AppUser?>()
-    val currentUser: LiveData<AppUser?> = _currentUser
-
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
@@ -33,7 +30,6 @@ class Page1ViewModel(
         get() = _problems.value?.getOrNull(_currentIndex.value ?: 0)
 
     fun init(user: AppUser) {
-        _currentUser.value = user
         loadProblems()
     }
 
@@ -58,23 +54,15 @@ class Page1ViewModel(
         }
     }
 
-    fun goToPrev() {
-        val idx = (_currentIndex.value ?: 0) - 1
+    private fun navigateTo(newIdx: Int) {
         val list = _problems.value ?: return
-        if (idx >= 0) {
-            _currentIndex.value = idx
-            loadNotes(list[idx].id)
-        }
+        if (newIdx !in list.indices) return
+        _currentIndex.value = newIdx
+        loadNotes(list[newIdx].id)
     }
 
-    fun goToNext() {
-        val idx = (_currentIndex.value ?: 0) + 1
-        val list = _problems.value ?: return
-        if (idx < list.size) {
-            _currentIndex.value = idx
-            loadNotes(list[idx].id)
-        }
-    }
+    fun goToPrev() = navigateTo((_currentIndex.value ?: 0) - 1)
+    fun goToNext() = navigateTo((_currentIndex.value ?: 0) + 1)
 
     fun refreshNotes() {
         currentProblem?.let { loadNotes(it.id) }

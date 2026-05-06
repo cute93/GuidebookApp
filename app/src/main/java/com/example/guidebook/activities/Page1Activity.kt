@@ -11,6 +11,7 @@ import com.bumptech.glide.Glide
 import com.example.guidebook.adapters.UserPanelAdapter
 import com.example.guidebook.databinding.ActivityPage1Binding
 import com.example.guidebook.models.AppUser
+import com.example.guidebook.models.Problem
 import com.example.guidebook.viewmodels.Page1ViewModel
 
 class Page1Activity : AppCompatActivity() {
@@ -65,23 +66,21 @@ class Page1Activity : AppCompatActivity() {
         }
     }
 
+    private fun updateProblemUi(idx: Int, list: List<Problem>) {
+        val problem = list.getOrNull(idx) ?: return
+        binding.tvProblemTitle.text = problem.title
+        Glide.with(this).load(problem.imageUrl).into(binding.ivProblem)
+        binding.btnPrev.isEnabled = idx > 0
+        binding.btnNext.isEnabled = idx < list.size - 1
+    }
+
     private fun observeViewModel() {
         viewModel.problems.observe(this) { list ->
-            val idx = viewModel.currentIndex.value ?: 0
-            val problem = list.getOrNull(idx) ?: return@observe
-            binding.tvProblemTitle.text = problem.title
-            Glide.with(this).load(problem.imageUrl).into(binding.ivProblem)
-            binding.btnPrev.isEnabled = idx > 0
-            binding.btnNext.isEnabled = idx < list.size - 1
+            updateProblemUi(viewModel.currentIndex.value ?: 0, list)
         }
 
         viewModel.currentIndex.observe(this) { idx ->
-            val list = viewModel.problems.value ?: return@observe
-            val problem = list.getOrNull(idx) ?: return@observe
-            binding.tvProblemTitle.text = problem.title
-            Glide.with(this).load(problem.imageUrl).into(binding.ivProblem)
-            binding.btnPrev.isEnabled = idx > 0
-            binding.btnNext.isEnabled = idx < list.size - 1
+            updateProblemUi(idx, viewModel.problems.value ?: return@observe)
         }
 
         viewModel.notes.observe(this) { notes ->

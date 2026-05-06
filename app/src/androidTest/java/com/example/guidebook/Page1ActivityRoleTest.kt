@@ -41,4 +41,22 @@ class Page1ActivityRoleTest {
             onView(withId(R.id.btnNext)).check(matches(isDisplayed()))
         }
     }
+
+    @Test fun `problem panel grid is displayed`() {
+        launchWithUser("student").use {
+            onView(withId(R.id.rvPanels)).check(matches(isDisplayed()))
+        }
+    }
+
+    @Test fun `problem title view is displayed`() {
+        launchWithUser("student").use {
+            onView(withId(R.id.tvProblemTitle)).check(matches(isDisplayed()))
+        }
+    }
+
+    @Test fun `teacher role upload button is clickable`() {
+        launchWithUser("teacher").use {
+            onView(withId(R.id.btnUploadProblem)).check(matches(isEnabled()))
+        }
+    }
 }

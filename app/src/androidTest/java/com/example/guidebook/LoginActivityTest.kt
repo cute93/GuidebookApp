@@ -4,6 +4,7 @@ import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.*
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.*
+import androidx.test.espresso.matcher.ViewMatchers.Visibility
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.guidebook.activities.LoginActivity
@@ -37,5 +38,23 @@ class LoginActivityTest {
         onView(withId(R.id.etEmail)).perform(typeText("test@test.com"), closeSoftKeyboard())
         onView(withId(R.id.etPassword)).perform(typeText("password"), closeSoftKeyboard())
         onView(withId(R.id.btnLogin)).check(matches(isEnabled()))
+    }
+
+    @Test fun `empty password with valid email keeps button enabled after click`() {
+        onView(withId(R.id.etEmail)).perform(typeText("test@test.com"), closeSoftKeyboard())
+        onView(withId(R.id.etPassword)).perform(clearText())
+        onView(withId(R.id.btnLogin)).perform(click())
+        onView(withId(R.id.btnLogin)).check(matches(isEnabled()))
+    }
+
+    @Test fun `whitespace only email keeps button enabled after click`() {
+        onView(withId(R.id.etEmail)).perform(typeText("   "), closeSoftKeyboard())
+        onView(withId(R.id.etPassword)).perform(typeText("password"), closeSoftKeyboard())
+        onView(withId(R.id.btnLogin)).perform(click())
+        onView(withId(R.id.btnLogin)).check(matches(isEnabled()))
+    }
+
+    @Test fun `progress bar is initially hidden`() {
+        onView(withId(R.id.progressBar)).check(matches(withEffectiveVisibility(Visibility.GONE)))
     }
 }

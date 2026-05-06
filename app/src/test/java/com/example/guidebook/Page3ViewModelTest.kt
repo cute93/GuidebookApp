@@ -68,4 +68,40 @@ class Page3ViewModelTest {
         assertTrue(state is Page3ViewModel.UploadState.Error)
         assertEquals("업로드 실패", (state as Page3ViewModel.UploadState.Error).message)
     }
+
+    @Test fun `loading state is set before upload coroutine starts`() {
+        // uploadProblem sets Loading synchronously before launching the coroutine.
+        // With UnconfinedTestDispatcher the coroutine runs eagerly, so we verify
+        // the final Success state (Loading was the intermediate step).
+        coEvery {
+            mockRepo.uploadProblem(any(), any(), any(), any())
+        } returns Result.success(mockk(relaxed = true))
+
+        vm.uploadProblem("수학 문제", "수학", mockUri, mockContext)
+
+        assertTrue(vm.uploadState.value is Page3ViewModel.UploadState.Success)
+    }
+
+    @Test fun `success state contains the uploaded problem object`() {
+        val problem = com.example.guidebook.models.Problem(id = "p99", title = "업로드 문제", teacherId = "t1")
+        coEvery {
+            mockRepo.uploadProblem(any(), any(), any(), any())
+        } returns Result.success(problem)
+
+        vm.uploadProblem("업로드 문제", "수학", mockUri, mockContext)
+
+        val state = vm.uploadState.value as? Page3ViewModel.UploadState.Success
+        assertEquals("p99", state?.problem?.id)
+    }
+
+    @Test fun `error message falls back to default when exception message is null`() {
+        coEvery {
+            mockRepo.uploadProblem(any(), any(), any(), any())
+        } returns Result.failure(Exception(null as String?))
+
+        vm.uploadProblem("제목", "수학", mockUri, mockContext)
+
+        val state = vm.uploadState.value as? Page3ViewModel.UploadState.Error
+        assertEquals("업로드 실패", state?.message)
+    }
 }

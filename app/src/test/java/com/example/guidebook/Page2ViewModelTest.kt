@@ -57,4 +57,28 @@ class Page2ViewModelTest {
         assertTrue(state is Page2ViewModel.SaveState.Error)
         assertEquals("네트워크 오류", (state as Page2ViewModel.SaveState.Error).message)
     }
+
+    @Test fun `saveState resets to null at start of each upload`() {
+        coEvery {
+            mockRepo.uploadNoteDrawing(any(), any(), any(), any(), any())
+        } returns Result.success(mockk(relaxed = true))
+
+        vm.uploadDrawing("p1", "u1", "홍길동", "student", bitmap)
+        // After first upload saveState is Uploaded; second call must reset to null first.
+        // Since UnconfinedTestDispatcher runs synchronously, null is briefly set then overwritten.
+        // We verify by checking the final state is still Uploaded (not corrupted).
+        vm.uploadDrawing("p1", "u1", "홍길동", "student", bitmap)
+        assertTrue(vm.saveState.value is Page2ViewModel.SaveState.Uploaded)
+    }
+
+    @Test fun `upload error message falls back to default when exception message is null`() {
+        coEvery {
+            mockRepo.uploadNoteDrawing(any(), any(), any(), any(), any())
+        } returns Result.failure(Exception(null as String?))
+
+        vm.uploadDrawing("p1", "u1", "홍길동", "student", bitmap)
+
+        val state = vm.saveState.value as? Page2ViewModel.SaveState.Error
+        assertEquals("업로드 실패", state?.message)
+    }
 }

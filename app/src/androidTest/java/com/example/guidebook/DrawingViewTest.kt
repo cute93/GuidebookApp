@@ -1,6 +1,9 @@
 package com.example.guidebook
 
+import android.graphics.Bitmap
 import android.graphics.Color
+import android.view.MotionEvent
+import android.view.View
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.guidebook.views.DrawingView
@@ -52,6 +55,68 @@ class DrawingViewTest {
 
     @Test fun `undo on empty paths does not crash`() {
         view.undo() // 빈 상태에서 undo — 예외 없이 통과
+    }
+
+    // ── 터치 이벤트 기반 테스트 ───────────────────────────────────────────────
+
+    private fun injectStroke(view: View, x1: Float, y1: Float, x2: Float, y2: Float) {
+        val t = System.currentTimeMillis()
+        MotionEvent.obtain(t, t, MotionEvent.ACTION_DOWN, x1, y1, 0).let {
+            view.dispatchTouchEvent(it); it.recycle()
+        }
+        MotionEvent.obtain(t, t + 10, MotionEvent.ACTION_MOVE, x2, y2, 0).let {
+            view.dispatchTouchEvent(it); it.recycle()
+        }
+        MotionEvent.obtain(t, t + 20, MotionEvent.ACTION_UP, x2, y2, 0).let {
+            view.dispatchTouchEvent(it); it.recycle()
+        }
+    }
+
+    @Test fun `drawing a stroke produces non-white pixels on bitmap`() {
+        view.setColor(Color.BLACK)
+        injectStroke(view, 50f, 200f, 350f, 200f)
+        val bmp = view.getBitmap()
+        // 수평선 중앙 픽셀이 흰색이 아니어야 함
+        assertNotEquals(Color.WHITE, bmp.getPixel(200, 200))
+    }
+
+    @Test fun `undo after stroke restores white canvas`() {
+        view.setColor(Color.BLACK)
+        injectStroke(view, 50f, 200f, 350f, 200f)
+        view.undo()
+        val bmp = view.getBitmap()
+        assertEquals(Color.WHITE, bmp.getPixel(200, 200))
+    }
+
+    @Test fun `eraser draws white over previously drawn stroke`() {
+        view.setColor(Color.BLACK)
+        injectStroke(view, 50f, 200f, 350f, 200f)
+        view.setEraserMode(true)
+        injectStroke(view, 150f, 200f, 250f, 200f)
+        val bmp = view.getBitmap()
+        // 지우개로 덮은 구간 중심 픽셀은 흰색이어야 함
+        assertEquals(Color.WHITE, bmp.getPixel(200, 200))
+    }
+
+    @Test fun `multiple strokes then multiple undos restores white canvas`() {
+        view.setColor(Color.BLACK)
+        injectStroke(view, 10f, 100f, 100f, 100f)
+        injectStroke(view, 10f, 200f, 100f, 200f)
+        injectStroke(view, 10f, 300f, 100f, 300f)
+        view.undo()
+        view.undo()
+        view.undo()
+        val bmp = view.getBitmap()
+        assertTrue(isBitmapAllWhite(bmp))
+    }
+
+    private fun isBitmapAllWhite(bmp: Bitmap): Boolean {
+        for (y in 0 until bmp.height step 10) {
+            for (x in 0 until bmp.width step 10) {
+                if (bmp.getPixel(x, y) != Color.WHITE) return false
+            }
+        }
+        return true
     }
 
 

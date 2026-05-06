@@ -10,10 +10,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.util.UUID
 
-class GuidebookRepository {
-
-    private val auth = FirebaseAuth.getInstance()
-    private val db   = FirebaseFirestore.getInstance()
+class GuidebookRepository(
+    private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
+    private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
+) {
 
     // ── Auth ──────────────────────────────────────────────────────────────────
 

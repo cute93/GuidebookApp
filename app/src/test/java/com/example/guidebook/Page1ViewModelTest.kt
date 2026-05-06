@@ -86,4 +86,51 @@ class Page1ViewModelTest {
         vm.init(AppUser(uid = "u1", name = "테스트", role = "student"))
         assertEquals("네트워크 오류", vm.error.value)
     }
+
+    @Test fun `loadNotes called with first problem id on init`() {
+        val p = Problem(id = "firstId", title = "첫 문제")
+        initWithProblems(p)
+        coVerify { mockRepo.getUserNotes("firstId") }
+    }
+
+    @Test fun `loadNotes failure sets error LiveData`() {
+        val p = Problem(id = "p1", title = "문제1")
+        coEvery { mockRepo.getProblems() } returns Result.success(listOf(p))
+        coEvery { mockRepo.getUserNotes(any()) } returns Result.failure(Exception("노트 오류"))
+        vm.init(AppUser(uid = "u1", name = "테스트", role = "student"))
+        assertEquals("노트 오류", vm.error.value)
+    }
+
+    @Test fun `goToNext loads notes for the new problem`() {
+        val p1 = Problem(id = "p1", title = "문제1")
+        val p2 = Problem(id = "p2", title = "문제2")
+        initWithProblems(p1, p2)
+        vm.goToNext()
+        coVerify { mockRepo.getUserNotes("p2") }
+    }
+
+    @Test fun `goToPrev loads notes for the new problem`() {
+        val p1 = Problem(id = "p1", title = "문제1")
+        val p2 = Problem(id = "p2", title = "문제2")
+        initWithProblems(p1, p2)
+        vm.goToNext()
+        vm.goToPrev()
+        coVerify { mockRepo.getUserNotes("p1") }
+    }
+
+    @Test fun `refreshNotes does nothing when no problems loaded`() {
+        coEvery { mockRepo.getProblems() } returns Result.success(emptyList())
+        vm.init(AppUser(uid = "u1", name = "테스트", role = "student"))
+        vm.refreshNotes()
+        coVerify(exactly = 0) { mockRepo.getUserNotes(any()) }
+    }
+
+    @Test fun `rapid navigation ends at correct problem`() {
+        val problems = (1..5).map { Problem(id = "p$it", title = "문제$it") }
+        initWithProblems(*problems.toTypedArray())
+        repeat(4) { vm.goToNext() }
+        repeat(2) { vm.goToPrev() }
+        assertEquals(2, vm.currentIndex.value)
+        assertEquals("p3", vm.currentProblem?.id)
+    }
 }

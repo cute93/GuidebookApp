@@ -12,6 +12,7 @@ import com.example.guidebook.adapters.UserPanelAdapter
 import com.example.guidebook.databinding.ActivityPage1Binding
 import com.example.guidebook.models.AppUser
 import com.example.guidebook.models.Problem
+import com.example.guidebook.models.UserNote
 import com.example.guidebook.viewmodels.Page1ViewModel
 
 class Page1Activity : AppCompatActivity() {
@@ -20,14 +21,6 @@ class Page1Activity : AppCompatActivity() {
     private val viewModel: Page1ViewModel by viewModels()
 
     private lateinit var currentUser: AppUser
-
-    // Fixed participant slots (teacher + 3 students) mirroring Figma layout
-    private val participantSlots = listOf(
-        "teacher" to "교사",
-        "student1" to "학생1",
-        "student2" to "학생2",
-        "student3" to "학생3"
-    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,13 +78,8 @@ class Page1Activity : AppCompatActivity() {
 
         viewModel.notes.observe(this) { notes ->
             val problem = viewModel.currentProblem ?: return@observe
-            val panels = participantSlots.map { (uid, name) ->
-                val role = if (uid == "teacher") "teacher" else "student"
-                val note = notes.find { it.userId == uid }
-                UserPanelAdapter.PanelItem(uid, name, role, note)
-            }
+            val panels = buildPanels(notes, problem)
             binding.rvPanels.adapter = UserPanelAdapter(panels) { item ->
-                // Only current user can open their own writing screen
                 if (item.userId == currentUser.uid ||
                     (currentUser.role == "teacher" && item.role == "teacher")
                 ) {
@@ -110,5 +98,37 @@ class Page1Activity : AppCompatActivity() {
         viewModel.error.observe(this) { msg ->
             msg?.let { Toast.makeText(this, it, Toast.LENGTH_SHORT).show() }
         }
+    }
+
+    private fun buildPanels(notes: List<UserNote>, problem: Problem): List<UserPanelAdapter.PanelItem> {
+        val result = mutableListOf<UserPanelAdapter.PanelItem>()
+
+        val teacherNote = notes.find { it.role == "teacher" }
+        result.add(UserPanelAdapter.PanelItem(
+            userId   = teacherNote?.userId ?: problem.teacherId,
+            userName = "교사",
+            role     = "teacher",
+            note     = teacherNote
+        ))
+
+        if (currentUser.role == "student") {
+            val myNote = notes.find { it.userId == currentUser.uid }
+            result.add(UserPanelAdapter.PanelItem(
+                userId   = currentUser.uid,
+                userName = currentUser.name,
+                role     = "student",
+                note     = myNote
+            ))
+        }
+
+        notes.filter { it.role == "student" && it.userId != currentUser.uid }
+            .forEach { note -> if (result.size < 4) result.add(UserPanelAdapter.PanelItem(note.userId, note.userName, "student", note)) }
+
+        var idx = 0
+        while (result.size < 4) {
+            result.add(UserPanelAdapter.PanelItem("empty_$idx", "학생${++idx}", "student", null))
+        }
+
+        return result.take(4)
     }
 }

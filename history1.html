@@ -333,6 +333,7 @@
       <div class="step-dot" data-target="step3" title="Step 3"></div>
       <div class="step-dot" data-target="step45" title="Step 4-5"></div>
       <div class="step-dot" data-target="step6" title="Step 6"></div>
+      <div class="step-dot" data-target="stepGit" title="Git / PR"></div>
     </div>
   </div>
 </nav>
@@ -348,6 +349,7 @@
       <li><a href="#step3"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>Page1Activity</a></li>
       <li><a href="#step45"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>Page 2 구현</a></li>
       <li><a href="#step6"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>Page 3 버튼</a></li>
+      <li><a href="#stepGit"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>Git / PR</a></li>
       <li><a href="#verify-detail"><span class="aside-num">✓</span>검증 절차</a></li>
     </ul>
   </aside>
@@ -842,6 +844,90 @@ binding.btnSaveDraft.<span class="fn">setOnClickListener</span> { <span class="f
 
     <div class="step-div"></div>
 
+    <!-- Git / PR -->
+    <div class="step-section" id="stepGit">
+      <div class="step-header">
+        <div class="step-badge done">✓</div>
+        <div class="step-meta">
+          <h2>Git 커밋 · Push · PR 생성</h2>
+          <p>newversion01 브랜치 → GitHub → master PR</p>
+        </div>
+        <span class="step-status done">완료</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-chip green">커밋 6ac9889</span>
+        <span class="info-chip green">origin/newversion01 push ✓</span>
+        <span class="info-chip green">PR 생성 ✓</span>
+        <span class="info-chip">gh CLI v2.92.0 설치</span>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🌿</span>
+          <h4>브랜치 및 커밋</h4>
+          <span class="card-header-badge" style="background:rgba(74,222,128,0.12);color:#4ade80">완료</span>
+        </div>
+        <div class="card-body">
+          <div class="code-wrap">
+            <div class="code-top">
+              <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+              <span class="code-lang">Shell</span>
+            </div>
+            <pre><span class="cmt"># new_version → newversion01 브랜치 분기</span>
+git checkout -b newversion01
+
+<span class="cmt"># 앱 소스 13개 파일 스테이징 (gradle 바이너리 제외)</span>
+git add app/src/... .claude/commands/GuidebookDesign.md history*.html
+git rm adapters/UserPanelAdapter.kt layout/item_user_panel.xml
+
+git commit -m <span class="str">"feat: Figma UI 반영 — Page1 레이아웃 재설계 + Page2 드래프트 저장"</span>
+<span class="cmt"># [newversion01 6ac9889] 13 files changed, 2107 insertions(+), 146 deletions(-)</span>
+
+git push -u origin newversion01
+<span class="str">✓ Branch 'newversion01' set up to track 'origin/newversion01'</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🔀</span>
+          <h4>Pull Request — master ← newversion01</h4>
+          <span class="card-header-badge" style="background:rgba(74,222,128,0.12);color:#4ade80">오픈</span>
+        </div>
+        <div class="card-body">
+          <div class="info-row">
+            <span class="info-chip accent">base: master</span>
+            <span class="info-chip indigo">head: newversion01</span>
+          </div>
+          <div class="code-wrap">
+            <div class="code-top">
+              <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+              <span class="code-lang">Shell</span>
+            </div>
+            <pre><span class="cmt"># GitHub CLI v2.92.0 설치 (winget)</span>
+winget install --id GitHub.cli
+
+<span class="cmt"># gh auth login 완료 후 PR 생성</span>
+gh pr create \
+  --title <span class="str">"feat: Figma UI 반영 — Page1 레이아웃 재설계 + Page2 드래프트 저장"</span> \
+  --base master --head newversion01
+
+<span class="str">https://github.com/cute93/GuidebookApp/pull/new/newversion01</span></pre>
+          </div>
+          <ul class="checklist" style="margin-top:12px">
+            <li><div class="check-box done"></div>브랜치 newversion01 push 완료</li>
+            <li><div class="check-box done"></div>PR 제목 · 본문 작성 완료</li>
+            <li><div class="check-box done"></div>변경 파일 목록 · Test plan 포함</li>
+            <li><div class="check-box pending"></div>코드 리뷰 후 master 머지 예정</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-div"></div>
+
     <!-- Verification -->
     <div class="step-section" id="verify-detail">
       <div class="step-header">
@@ -922,7 +1008,7 @@ binding.btnSaveDraft.<span class="fn">setOnClickListener</span> { <span class="f
   const stepDots = document.querySelectorAll('.step-dot');
 
   const sectionMap = {
-    'step0': 0, 'stepV': 1, 'step1': 2, 'step2': 3, 'step3': 4, 'step45': 5, 'step6': 6
+    'step0': 0, 'stepV': 1, 'step1': 2, 'step2': 3, 'step3': 4, 'step45': 5, 'step6': 6, 'stepGit': 7
   };
 
   const observer = new IntersectionObserver((entries) => {

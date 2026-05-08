@@ -388,7 +388,7 @@
     <div class="status-icon">✅</div>
     <div class="status-text">
       <h3>현재 진행 상태</h3>
-      <p>전체 6단계 구현 완료 · assembleDebug BUILD SUCCESSFUL · 단위테스트 전체 통과</p>
+      <p>전체 7단계 구현 완료 · assembleDebug BUILD SUCCESSFUL · 단위테스트 전체 통과 · 노트 실시간 갱신 추가</p>
     </div>
     <div class="status-progress">
       <div class="progress-label">전체 진행률</div>
@@ -448,6 +448,14 @@
         <h3>Page 3 버튼 스타일</h3>
         <p>업로드 버튼 → green_accent, textColor #000</p>
         <span class="phase-file">activity_page3.xml</span>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-status done">✓ 완료</div>
+        <div class="phase-num">07</div>
+        <h3>업로드 후 즉시 반영</h3>
+        <p>노트 Firestore 실시간 리스너 전환 · 업로드 시 즉시 Page1 복귀 · 멀티 유저 자동 갱신</p>
+        <span class="phase-file">Repository · Page1ViewModel · Page1/2Activity</span>
       </div>
 
     </div>
@@ -516,6 +524,16 @@
         <span class="tl-tag green">전체 6단계 완료</span>
         <span class="tl-tag green">BUILD SUCCESSFUL</span>
         <span class="tl-tag green">테스트 전체 통과</span>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot done"></div>
+        <div class="tl-time">2026-05-08 · 기능 개선</div>
+        <h4>업로드 후 즉시 Page1 복귀 + 노트 실시간 갱신</h4>
+        <p>Repository에 <code style="font-size:11px; background:rgba(255,255,255,0.07); padding:1px 5px; border-radius:4px">observeNotes()</code> Firestore 실시간 리스너 추가. Page1ViewModel의 일회성 쿼리를 Flow 기반으로 교체. Page2 업로드 성공 시 Toast 제거 후 즉시 <code style="font-size:11px; background:rgba(255,255,255,0.07); padding:1px 5px; border-radius:4px">finish()</code>. 커밋 805284c.</p>
+        <span class="tl-tag green">실시간 갱신</span>
+        <span class="tl-tag green">즉시 복귀</span>
+        <span class="tl-tag green">멀티유저 지원</span>
       </div>
 
       <div class="tl-item">

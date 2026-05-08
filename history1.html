@@ -334,6 +334,7 @@
       <div class="step-dot" data-target="step45" title="Step 4-5"></div>
       <div class="step-dot" data-target="step6" title="Step 6"></div>
       <div class="step-dot" data-target="stepGit" title="Git / PR"></div>
+      <div class="step-dot" data-target="stepRT" title="실시간 갱신"></div>
     </div>
   </div>
 </nav>
@@ -350,6 +351,7 @@
       <li><a href="#step45"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>Page 2 구현</a></li>
       <li><a href="#step6"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>Page 3 버튼</a></li>
       <li><a href="#stepGit"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>Git / PR</a></li>
+      <li><a href="#stepRT"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>실시간 갱신</a></li>
       <li><a href="#verify-detail"><span class="aside-num">✓</span>검증 절차</a></li>
     </ul>
   </aside>
@@ -928,6 +930,117 @@ gh pr create \
 
     <div class="step-div"></div>
 
+    <!-- 실시간 갱신 -->
+    <div class="step-section" id="stepRT">
+      <div class="step-header">
+        <div class="step-badge done">✓</div>
+        <div class="step-meta">
+          <h2>업로드 후 즉시 Page1 복귀 + 노트 실시간 갱신</h2>
+          <p>커밋 805284c · newversion01</p>
+        </div>
+        <span class="step-status done">완료</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-chip green">즉시 복귀</span>
+        <span class="info-chip green">Firestore 실시간 리스너</span>
+        <span class="info-chip green">멀티유저 자동 갱신</span>
+        <span class="info-chip">5개 파일 수정</span>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🔍</span>
+          <h4>기존 문제점</h4>
+        </div>
+        <div class="card-body">
+          <div class="diff-row">
+            <div class="diff-box diff-before">
+              <div class="diff-label">변경 전</div>
+              <div class="diff-content">1. 업로드 완료<br>2. Page2에 Toast 표시<br>&nbsp;&nbsp;&nbsp;("업로드 완료! 반영됐습니다")<br>3. finish() → Page1 복귀<br>4. onResume() → refreshNotes()<br>&nbsp;&nbsp;&nbsp;(일회성 Firestore 쿼리)<br>5. 조회 완료 후 이미지 표시<br><br>❌ 다른 유저 업로드는 수동<br>&nbsp;&nbsp;&nbsp;재진입 전까지 갱신 안 됨</div>
+            </div>
+            <div class="diff-box diff-after">
+              <div class="diff-label">변경 후</div>
+              <div class="diff-content">1. 업로드 완료<br>2. 즉시 finish() → Page1 복귀<br>3. Firestore 리스너가 변경 감지<br>4. _notes LiveData 자동 갱신<br>5. 패널에 이미지 즉시 표시<br><br>✓ 다른 유저가 올려도<br>&nbsp;&nbsp;&nbsp;포그라운드에서 자동 반영</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🗄️</span>
+          <h4>Repository — observeNotes() 추가</h4>
+          <span class="card-header-badge">GuidebookRepository.kt</span>
+        </div>
+        <div class="card-body">
+          <div class="code-wrap">
+            <div class="code-top">
+              <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+              <span class="code-lang">Kotlin</span>
+            </div>
+            <pre><span class="cmt">// observeProblems()와 동일한 패턴 — callbackFlow + addSnapshotListener</span>
+<span class="kw">fun</span> <span class="fn">observeNotes</span>(problemId: <span class="cls">String</span>): <span class="cls">Flow</span>&lt;<span class="cls">Result</span>&lt;<span class="cls">List</span>&lt;<span class="cls">UserNote</span>&gt;&gt;&gt; = <span class="fn">callbackFlow</span> {
+    <span class="kw">val</span> listener = db.<span class="fn">collection</span>(<span class="str">"notes"</span>)
+        .<span class="fn">whereEqualTo</span>(<span class="str">"problemId"</span>, problemId)
+        .<span class="fn">addSnapshotListener</span> { snapshot, error ->
+            <span class="kw">if</span> (error != <span class="kw">null</span>) { <span class="fn">trySend</span>(<span class="cls">Result</span>.<span class="fn">failure</span>(error)); <span class="kw">return</span>@addSnapshotListener }
+            <span class="kw">val</span> list = snapshot?.documents
+                ?.<span class="fn">mapNotNull</span> { it.<span class="fn">toObject</span>(<span class="cls">UserNote</span>::<span class="kw">class</span>.java) } ?: <span class="fn">emptyList</span>()
+            <span class="fn">trySend</span>(<span class="cls">Result</span>.<span class="fn">success</span>(list))
+        }
+    <span class="fn">awaitClose</span> { listener.<span class="fn">remove</span>() }
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🧠</span>
+          <h4>Page1ViewModel — observeNotes() 교체</h4>
+          <span class="card-header-badge">Page1ViewModel.kt</span>
+        </div>
+        <div class="card-body">
+          <div class="code-wrap">
+            <div class="code-top">
+              <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+              <span class="code-lang">Kotlin</span>
+            </div>
+            <pre><span class="kw">private var</span> notesJob: <span class="cls">Job</span>? = <span class="kw">null</span>
+
+<span class="cmt">// 문제 전환 시 기존 리스너 취소 후 새 리스너 시작</span>
+<span class="kw">fun</span> <span class="fn">observeNotes</span>(problemId: <span class="cls">String</span>) {
+    notesJob?.<span class="fn">cancel</span>()
+    notesJob = viewModelScope.<span class="fn">launch</span> {
+        repo.<span class="fn">observeNotes</span>(problemId).<span class="fn">collect</span> { result ->
+            result.<span class="fn">onSuccess</span> { _notes.value = it }
+                  .<span class="fn">onFailure</span> { _error.value = it.message }
+        }
+    }
+}
+<span class="cmt">// loadNotes(), refreshNotes() 삭제</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">📱</span>
+          <h4>Activity 변경 요약</h4>
+        </div>
+        <div class="card-body">
+          <ul class="checklist">
+            <li><div class="check-box done"></div><strong>Page1Activity</strong> — <code style="font-size:12px">onResume() { refreshNotes() }</code> 제거. 실시간 리스너가 자동 처리.</li>
+            <li><div class="check-box done"></div><strong>Page2Activity</strong> — 업로드 성공 시 Toast 제거 → 즉시 <code style="font-size:12px">finish()</code>. 딜레이 없이 Page1 복귀.</li>
+            <li><div class="check-box done"></div><strong>Page1ViewModelTest</strong> — <code style="font-size:12px">coEvery getUserNotes</code> → <code style="font-size:12px">every observeNotes flowOf</code> 패턴으로 갱신.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-div"></div>
+
     <!-- Verification -->
     <div class="step-section" id="verify-detail">
       <div class="step-header">
@@ -1008,7 +1121,7 @@ gh pr create \
   const stepDots = document.querySelectorAll('.step-dot');
 
   const sectionMap = {
-    'step0': 0, 'stepV': 1, 'step1': 2, 'step2': 3, 'step3': 4, 'step45': 5, 'step6': 6, 'stepGit': 7
+    'step0': 0, 'stepV': 1, 'step1': 2, 'step2': 3, 'step3': 4, 'step45': 5, 'step6': 6, 'stepGit': 7, 'stepRT': 8
   };
 
   const observer = new IntersectionObserver((entries) => {

@@ -57,54 +57,54 @@ Credentials are hardcoded in `CloudinaryHelper.kt` (cloud name: `dulqmyj05`). Up
 Authentication uses SHA-1 HMAC signatures generated at upload time.
 
 ## Key Implementation Details
--DrawingView는 오프스크린 Bitmap에 렌더링 후 PNG로 업로드 (GuidebookRepository.uploadNoteDrawing()). MotionEvent.TOOL_TYPE_STYLUS의 압력 데이터를 활용해 선 굵기를 조절합니다.
--Page1Activity는 교사 패널(위, 크게) + 학생 3개 패널(아래, 작게)을 고정 레이아웃으로 직접 바인딩합니다. bindPanel() 헬퍼로 각 슬롯의 이름·이미지·버튼을 처리합니다.
--Page3Activity는 조건부 접근 가능 — 툴바 버튼은 appUser.role == "teacher"일 때만 나타납니다.
--모든 비동기 작업은 Kotlin 코루틴(viewModelScope.launch)을 사용합니다. Firebase 작업은 kotlinx-coroutines-play-services의 await()로 처리됩니다.
--Page2Activity는 드래프트를 filesDir/drafts/{problemId}_{userId}.png에 JPEG 75%로 로컬 저장하고, 재진입 시 DrawingView.loadBitmap()으로 복원합니다.
+- DrawingView는 오프스크린 Bitmap에 렌더링 후 JPEG 75%로 압축해 업로드 (GuidebookRepository.uploadNoteDrawing()). MotionEvent.TOOL_TYPE_STYLUS의 압력 데이터를 활용해 선 굵기를 조절합니다. `getBitmap()` / `loadBitmap(bitmap)` 으로 드래프트 저장·복원을 지원합니다.
+- Page1Activity는 교사 패널(위, 크게) + 학생 3개 패널(아래, 작게)을 직접 뷰 바인딩으로 표시합니다. `bindPanel()` 헬퍼로 권한·이미지·클릭 처리를 일괄 담당합니다.
+- Page2Activity는 `lifecycleScope + Dispatchers.IO` 로 로컬 드래프트를 `filesDir/drafts/{problemId}_{uid}.png` 에 저장하고, 진입 시 `drawingView.post { loadDraftIfExists() }` 로 복원합니다 (post() 없이 호출하면 canvasBitmap이 null 상태).
+- Page3Activity는 조건부 접근 가능 — 툴바 버튼은 appUser.role == "teacher"일 때만 나타납니다.
+- 모든 비동기 작업은 Kotlin 코루틴(viewModelScope.launch)을 사용합니다. Firebase 작업은 kotlinx-coroutines-play-services의 await()로 처리됩니다.
+- Repository의 문제 목록 조회는 `observeProblems(): Flow<Result<List<Problem>>>` — 구 `getProblems()` 메서드는 삭제됨. 테스트에서는 `every { mockRepo.observeProblems() } returns flowOf(...)` 패턴 사용.
 
-## 빌드 오류 및 해결방법
+## 빌드 오류 해결 이력
 
-### 1. gradle-wrapper.jar 없음
-**증상:** `./gradlew` 실행 시 `gradle/wrapper/gradle-wrapper.jar` 없음 오류  
-**원인:** `.gitignore`의 `*.jar` 규칙으로 인해 wrapper jar가 git에서 제외됨  
+### 1. `gradle-wrapper.jar` 누락
+**증상:** `./gradlew` 실행 시 `bash: ./gradlew: No such file or directory` 또는 jar 관련 오류  
+**원인:** `.gitignore`의 `*.jar` 규칙으로 `gradle/wrapper/gradle-wrapper.jar`가 추적되지 않음  
 **해결:**
 ```bash
-# 방법 A — git에서 jar 추적 허용 (.gitignore에 예외 추가)
-echo '!gradle/wrapper/gradle-wrapper.jar' >> .gitignore
-git add -f gradle/wrapper/gradle-wrapper.jar
+# 방법 A — 다른 브랜치/캐시에서 복사
+cp .claude/worktrees/<worktree-path>/gradle/wrapper/gradle-wrapper.jar gradle/wrapper/
 
-# 방법 B — gradle wrapper 재생성 (Gradle 설치된 환경)
+# 방법 B — Gradle Wrapper 재생성 (Gradle 설치된 환경)
 gradle wrapper --gradle-version 8.11.1
 ```
+> `.gitignore`에서 `!gradle/wrapper/gradle-wrapper.jar` 예외 규칙을 추가하거나, CI에서 `gradle wrapper` 단계를 두는 것이 근본 해결책.
 
-### 2. local.properties 없음으로 빌드 실패
-**증상:** `storeFile file('')` 오류 또는 `sdk.dir` 미설정으로 빌드 실패  
-**원인:** `local.properties`는 gitignore 대상 — 클론 후 항상 수동 생성 필요  
-**해결:** 프로젝트 루트에 `local.properties` 생성
+---
+
+### 2. `local.properties` 누락
+**증상:** `Could not find method signingConfig()` 또는 `storeFile file('')` 관련 빌드 오류  
+**원인:** `local.properties`는 `.gitignore`에 포함되어 클론 직후 없음. `build.gradle`이 서명 설정을 이 파일에서 읽음  
+**해결:** 루트에 `local.properties` 생성:
 ```properties
 sdk.dir=C\:/Users/<사용자명>/AppData/Local/Android/Sdk
-# 릴리스 서명이 불필요한 경우 아래 더미값으로 디버그 빌드 가능
 SIGNING_STORE_FILE=placeholder.jks
 SIGNING_STORE_PASSWORD=placeholder
 SIGNING_KEY_ALIAS=placeholder
 SIGNING_KEY_PASSWORD=placeholder
 ```
+> 릴리스 빌드가 필요한 경우 실제 keystore 경로와 비밀번호로 교체.
 
-### 3. 단위테스트 컴파일 오류 — 삭제된 Repository 메서드 참조
-**증상:** `./gradlew test` 실패, `Unresolved reference: getProblems`  
-**원인:** Repository API가 `getProblems(): Result<List<Problem>>` → `observeProblems(): Flow<Result<List<Problem>>>` 로 변경됐으나 테스트 미갱신  
-**해결:** `Page1ViewModelTest.kt`에서 MockK 방식 변경
+---
+
+### 3. 단위테스트 컴파일 오류 — 구 Repository API 참조
+**증상:** `./gradlew test` 실행 시 `Unresolved reference: getProblems`  
+**원인:** `GuidebookRepository`가 `getProblems()` → `observeProblems(): Flow<>` 로 교체됐으나 `Page1ViewModelTest.kt`가 미갱신  
+**해결:** 테스트 파일의 mock 패턴 교체:
 ```kotlin
-// 수정 전 (구 API)
+// 변경 전 (오류)
 coEvery { mockRepo.getProblems() } returns Result.success(listOf(...))
 
-// 수정 후 (Flow 기반)
-import kotlinx.coroutines.flow.flowOf
+// 변경 후 (정상)
 every { mockRepo.observeProblems() } returns flowOf(Result.success(listOf(...)))
+// import kotlinx.coroutines.flow.flowOf 추가 필요
 ```
-
-### 4. 레이아웃·Activity 불일치로 빌드 실패
-**증상:** XML에서 뷰를 제거했는데 Activity에서 해당 binding 참조 시 컴파일 오류  
-**원인:** `activity_page1.xml`에서 RecyclerView(`rvPanels`) 제거 후 `Page1Activity.kt`가 `binding.rvPanels` 여전히 참조  
-**해결:** 레이아웃과 Activity를 항상 함께 수정. 뷰 ID를 삭제할 경우 해당 ID를 참조하는 모든 kt 파일 동시 업데이트

@@ -86,11 +86,20 @@ class GuidebookRepository {
 
     // ── UserNotes ─────────────────────────────────────────────────────────────
 
-    suspend fun getUserNotes(problemId: String): Result<List<UserNote>> = runCatching {
-        db.collection("notes")
+    fun observeNotes(problemId: String): Flow<Result<List<UserNote>>> = callbackFlow {
+        val listener = db.collection("notes")
             .whereEqualTo("problemId", problemId)
-            .get().await()
-            .documents.mapNotNull { it.toObject(UserNote::class.java) }
+            .addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    trySend(Result.failure(error))
+                    return@addSnapshotListener
+                }
+                val list = snapshot?.documents
+                    ?.mapNotNull { it.toObject(UserNote::class.java) }
+                    ?: emptyList()
+                trySend(Result.success(list))
+            }
+        awaitClose { listener.remove() }
     }
 
     /**

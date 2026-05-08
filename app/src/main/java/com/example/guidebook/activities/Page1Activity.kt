@@ -36,11 +36,6 @@ class Page1Activity : AppCompatActivity() {
             if (currentUser.role == "teacher") View.VISIBLE else View.GONE
     }
 
-    override fun onResume() {
-        super.onResume()
-        viewModel.refreshNotes()
-    }
-
     private fun setupButtons() {
         binding.btnPrev.setOnClickListener { viewModel.goToPrev() }
         binding.btnNext.setOnClickListener { viewModel.goToNext() }

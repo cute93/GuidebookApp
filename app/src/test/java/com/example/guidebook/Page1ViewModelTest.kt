@@ -35,7 +35,7 @@ class Page1ViewModelTest {
 
     private fun initWithProblems(vararg problems: Problem) {
         every { mockRepo.observeProblems() } returns flowOf(Result.success(problems.toList()))
-        coEvery { mockRepo.getUserNotes(any()) } returns Result.success(emptyList())
+        every { mockRepo.observeNotes(any()) } returns flowOf(Result.success(emptyList()))
         vm.init(AppUser(uid = "u1", name = "테스트", role = "student"))
     }
 

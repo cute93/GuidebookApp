@@ -103,7 +103,6 @@ class Page2Activity : AppCompatActivity() {
             binding.btnUpload.isEnabled = true
             when (state) {
                 Page2ViewModel.SaveState.Uploaded -> {
-                    Toast.makeText(this, "업로드 완료! Page1에 반영되었습니다.", Toast.LENGTH_SHORT).show()
                     setResult(RESULT_OK)
                     finish()
                 }

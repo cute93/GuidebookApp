@@ -8,6 +8,7 @@ import com.example.guidebook.models.AppUser
 import com.example.guidebook.models.Problem
 import com.example.guidebook.models.UserNote
 import com.example.guidebook.repository.GuidebookRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 class Page1ViewModel(
@@ -29,6 +30,8 @@ class Page1ViewModel(
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
+    private var notesJob: Job? = null
+
     val currentProblem: Problem?
         get() = _problems.value?.getOrNull(_currentIndex.value ?: 0)
 
@@ -45,7 +48,7 @@ class Page1ViewModel(
                     _problems.value = list
                     val newProblemId = list.getOrNull(_currentIndex.value ?: 0)?.id
                     if (newProblemId != null && newProblemId != prevProblemId) {
-                        loadNotes(newProblemId)
+                        observeNotes(newProblemId)
                     }
                 }.onFailure {
                     _error.value = it.message
@@ -54,12 +57,12 @@ class Page1ViewModel(
         }
     }
 
-    fun loadNotes(problemId: String) {
-        viewModelScope.launch {
-            repo.getUserNotes(problemId).onSuccess {
-                _notes.value = it
-            }.onFailure {
-                _error.value = it.message
+    fun observeNotes(problemId: String) {
+        notesJob?.cancel()
+        notesJob = viewModelScope.launch {
+            repo.observeNotes(problemId).collect { result ->
+                result.onSuccess { _notes.value = it }
+                      .onFailure { _error.value = it.message }
             }
         }
     }
@@ -69,7 +72,7 @@ class Page1ViewModel(
         val list = _problems.value ?: return
         if (idx >= 0) {
             _currentIndex.value = idx
-            loadNotes(list[idx].id)
+            observeNotes(list[idx].id)
         }
     }
 
@@ -78,12 +81,8 @@ class Page1ViewModel(
         val list = _problems.value ?: return
         if (idx < list.size) {
             _currentIndex.value = idx
-            loadNotes(list[idx].id)
+            observeNotes(list[idx].id)
         }
-    }
-
-    fun refreshNotes() {
-        currentProblem?.let { loadNotes(it.id) }
     }
 
     fun logout() = repo.logout()

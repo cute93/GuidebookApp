@@ -6,11 +6,10 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.GridLayoutManager
 import com.bumptech.glide.Glide
-import com.example.guidebook.adapters.UserPanelAdapter
 import com.example.guidebook.databinding.ActivityPage1Binding
 import com.example.guidebook.models.AppUser
+import com.example.guidebook.models.UserNote
 import com.example.guidebook.viewmodels.Page1ViewModel
 
 class Page1Activity : AppCompatActivity() {
@@ -19,14 +18,6 @@ class Page1Activity : AppCompatActivity() {
     private val viewModel: Page1ViewModel by viewModels()
 
     private lateinit var currentUser: AppUser
-
-    // Fixed participant slots (teacher + 3 students) mirroring Figma layout
-    private val participantSlots = listOf(
-        "teacher" to "교사",
-        "student1" to "학생1",
-        "student2" to "학생2",
-        "student3" to "학생3"
-    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,7 +28,6 @@ class Page1Activity : AppCompatActivity() {
             ?: run { finish(); return }
 
         viewModel.init(currentUser)
-        setupRecyclerView()
         setupButtons()
         observeViewModel()
 
@@ -49,10 +39,6 @@ class Page1Activity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         viewModel.refreshNotes()
-    }
-
-    private fun setupRecyclerView() {
-        binding.rvPanels.layoutManager = GridLayoutManager(this, 2)
     }
 
     private fun setupButtons() {
@@ -93,30 +79,60 @@ class Page1Activity : AppCompatActivity() {
 
         viewModel.notes.observe(this) { notes ->
             val problem = viewModel.currentProblem ?: return@observe
-            val panels = participantSlots.map { (uid, name) ->
-                val role = if (uid == "teacher") "teacher" else "student"
-                val note = notes.find { it.userId == uid }
-                UserPanelAdapter.PanelItem(uid, name, role, note)
-            }
-            binding.rvPanels.adapter = UserPanelAdapter(panels) { item ->
-                // Only current user can open their own writing screen
-                if (item.userId == currentUser.uid ||
-                    (currentUser.role == "teacher" && item.role == "teacher")
-                ) {
-                    startActivity(Intent(this, Page2Activity::class.java).apply {
-                        putExtra("user", currentUser)
-                        putExtra("problemId", problem.id)
-                        putExtra("problemImageUrl", problem.imageUrl)
-                        putExtra("problemTitle", problem.title)
-                    })
-                } else {
-                    Toast.makeText(this, "자신의 해결포인트만 작성할 수 있습니다.", Toast.LENGTH_SHORT).show()
-                }
+            val teacherNote = notes.find { it.role == "teacher" }
+            val studentNotes = notes.filter { it.role == "student" }
+            val hasMyStudentNote = studentNotes.any { it.userId == currentUser.uid }
+
+            bindPanel(
+                binding.tvTeacherName, binding.ivTeacherNote, binding.btnTeacherWrite,
+                note = teacherNote,
+                canEdit = currentUser.role == "teacher",
+                problem = problem
+            )
+
+            listOf(
+                Triple(binding.tvStudent1Name, binding.ivStudent1Note, binding.btnStudent1Write),
+                Triple(binding.tvStudent2Name, binding.ivStudent2Note, binding.btnStudent2Write),
+                Triple(binding.tvStudent3Name, binding.ivStudent3Note, binding.btnStudent3Write)
+            ).forEachIndexed { i, (tvName, ivNote, btnWrite) ->
+                val note = studentNotes.getOrNull(i)
+                val canEdit = currentUser.role == "student" &&
+                    (note?.userId == currentUser.uid || (note == null && !hasMyStudentNote))
+                bindPanel(tvName, ivNote, btnWrite, note, canEdit, problem)
             }
         }
 
         viewModel.error.observe(this) { msg ->
             msg?.let { Toast.makeText(this, it, Toast.LENGTH_SHORT).show() }
+        }
+    }
+
+    private fun bindPanel(
+        tvName: android.widget.TextView,
+        ivNote: android.widget.ImageView,
+        btnWrite: android.widget.Button,
+        note: UserNote?,
+        canEdit: Boolean,
+        problem: com.example.guidebook.models.Problem
+    ) {
+        tvName.text = note?.userName ?: ""
+        if (note?.noteImageUrl != null) {
+            Glide.with(this).load(note.noteImageUrl).into(ivNote)
+        } else {
+            ivNote.setImageDrawable(null)
+        }
+        btnWrite.isEnabled = canEdit
+        btnWrite.setOnClickListener {
+            if (canEdit) {
+                startActivity(Intent(this, Page2Activity::class.java).apply {
+                    putExtra("user", currentUser)
+                    putExtra("problemId", problem.id)
+                    putExtra("problemImageUrl", problem.imageUrl)
+                    putExtra("problemTitle", problem.title)
+                })
+            } else {
+                Toast.makeText(this, "자신의 해결포인트만 작성할 수 있습니다.", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }

@@ -1,15 +1,22 @@
 package com.example.guidebook.activities
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.example.guidebook.databinding.ActivityPage2Binding
 import com.example.guidebook.models.AppUser
 import com.example.guidebook.viewmodels.Page2ViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 
 class Page2Activity : AppCompatActivity() {
 
@@ -37,6 +44,7 @@ class Page2Activity : AppCompatActivity() {
         setupToolbar()
         setupButtons()
         observeViewModel()
+        binding.drawingView.post { loadDraftIfExists() }
     }
 
     private fun setupToolbar() {
@@ -53,9 +61,7 @@ class Page2Activity : AppCompatActivity() {
     }
 
     private fun setupButtons() {
-        binding.btnSaveDraft.setOnClickListener {
-            Toast.makeText(this, "임시 저장되었습니다.", Toast.LENGTH_SHORT).show()
-        }
+        binding.btnSaveDraft.setOnClickListener { saveDraftLocally() }
 
         binding.btnUpload.setOnClickListener {
             binding.progressBar.visibility = View.VISIBLE
@@ -67,6 +73,27 @@ class Page2Activity : AppCompatActivity() {
                 role = currentUser.role,
                 bitmap = binding.drawingView.getBitmap()
             )
+        }
+    }
+
+    private fun saveDraftLocally() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val dir = File(filesDir, "drafts").also { it.mkdirs() }
+            val file = File(dir, "${problemId}_${currentUser.uid}.png")
+            file.outputStream().use { out ->
+                binding.drawingView.getBitmap().compress(Bitmap.CompressFormat.JPEG, 75, out)
+            }
+            withContext(Dispatchers.Main) {
+                Toast.makeText(this@Page2Activity, "임시 저장되었습니다.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun loadDraftIfExists() {
+        val file = File(filesDir, "drafts/${problemId}_${currentUser.uid}.png")
+        if (file.exists()) {
+            val bmp = BitmapFactory.decodeFile(file.absolutePath)
+            binding.drawingView.loadBitmap(bmp)
         }
     }
 

@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GuidebookApp — 세부 구현 계획</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #000;
+      --surface: rgba(255,255,255,0.04);
+      --surface-hover: rgba(255,255,255,0.07);
+      --surface-2: rgba(255,255,255,0.025);
+      --border: rgba(255,255,255,0.08);
+      --text: #f5f5f7;
+      --text-secondary: rgba(245,245,247,0.55);
+      --accent: #BDFF43;
+      --accent-dim: rgba(189,255,67,0.12);
+      --indigo: #818cf8;
+      --indigo-dim: rgba(129,140,248,0.12);
+      --red-dim: rgba(248,113,113,0.1);
+      --green-dim: rgba(74,222,128,0.1);
+      --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+      --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+      --radius: 20px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* ── Background ── */
+    .bg-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .blob {
+      position: absolute; border-radius: 50%;
+      filter: blur(130px); opacity: 0.18;
+      animation: drift 20s ease-in-out infinite alternate;
+    }
+    .blob-1 { width: 600px; height: 600px; background: #818cf8; top: -180px; right: -100px; animation-delay: 0s; }
+    .blob-2 { width: 450px; height: 450px; background: #BDFF43; bottom: 0; left: -80px; animation-delay: -8s; }
+    .blob-3 { width: 350px; height: 350px; background: #f472b6; top: 40%; left: 40%; animation-delay: -15s; }
+    @keyframes drift {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(50px, 35px) scale(1.08); }
+    }
+    .grid-lines {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 56px 56px;
+    }
+    .noise {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    }
+
+    /* ── Nav ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.65);
+    }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto; padding: 0 32px;
+      height: 56px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { font-size: 15px; font-weight: 600; }
+    .nav-logo span { color: var(--accent); }
+    .nav-back {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--text-secondary); text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-back:hover { color: var(--text); }
+    .nav-steps { display: flex; gap: 4px; }
+    .step-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,0.15); cursor: pointer;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .step-dot.active { background: var(--accent); transform: scale(1.3); }
+    .step-dot:hover { background: rgba(255,255,255,0.4); }
+
+    /* ── Layout ── */
+    .layout { max-width: 1200px; margin: 0 auto; padding: 0 32px; display: grid; grid-template-columns: 220px 1fr; gap: 0; position: relative; z-index: 1; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+    /* ── Sidebar ── */
+    aside {
+      padding-top: 56px;
+      position: sticky; top: 56px; height: calc(100vh - 56px);
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+      padding-right: 24px;
+    }
+    aside::-webkit-scrollbar { width: 4px; }
+    aside::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .aside-label {
+      font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      color: var(--text-secondary); margin-bottom: 12px; padding-left: 12px;
+    }
+    .aside-nav { list-style: none; }
+    .aside-nav li { margin-bottom: 2px; }
+    .aside-nav a {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 12px; border-radius: 8px;
+      font-size: 13px; color: var(--text-secondary); text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+    .aside-nav a:hover { background: var(--surface); color: var(--text); }
+    .aside-nav a.active { background: var(--accent-dim); color: var(--accent); font-weight: 500; }
+    .aside-num {
+      width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
+      background: rgba(255,255,255,0.07); font-size: 10px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-secondary);
+    }
+    .aside-nav a.active .aside-num { background: rgba(189,255,67,0.2); color: var(--accent); }
+
+    /* ── Main ── */
+    main { padding: 48px 0 48px 48px; min-height: calc(100vh - 56px); }
+    @media (max-width: 900px) { main { padding: 32px 0; } aside { display: none; } }
+
+    /* ── Step section ── */
+    .step-section { margin-bottom: 80px; scroll-margin-top: 80px; }
+    .step-header {
+      display: flex; align-items: flex-start; gap: 16px; margin-bottom: 28px;
+    }
+    .step-badge {
+      width: 44px; height: 44px; border-radius: 13px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700;
+      background: var(--accent-dim); border: 1px solid rgba(189,255,67,0.2);
+      color: var(--accent);
+    }
+    .step-badge.done { background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.3); color: #4ade80; }
+    .step-meta { flex: 1; }
+    .step-meta h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+    .step-meta p { font-size: 14px; color: var(--text-secondary); }
+    .step-status {
+      font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 10px;
+      letter-spacing: 0.3px; align-self: flex-start; margin-top: 4px;
+    }
+    .step-status.done    { background: rgba(74,222,128,0.1); color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
+    .step-status.pending { background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 16px; overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: rgba(255,255,255,0.12); }
+    .card-header {
+      padding: 14px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,0.02);
+    }
+    .card-header-icon { font-size: 15px; }
+    .card-header h4 { font-size: 13px; font-weight: 600; flex: 1; }
+    .card-header-badge {
+      font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
+      background: var(--accent-dim); color: var(--accent);
+    }
+    .card-body { padding: 20px; }
+
+    /* ── Code block ── */
+    .code-wrap {
+      background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px; overflow: hidden; margin: 12px 0;
+    }
+    .code-top {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.02);
+    }
+    .code-dots { display: flex; gap: 5px; }
+    .code-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .code-dot:nth-child(1) { background: #ff5f57; }
+    .code-dot:nth-child(2) { background: #febc2e; }
+    .code-dot:nth-child(3) { background: #28c840; }
+    .code-lang {
+      font-size: 11px; color: var(--text-secondary); font-family: var(--mono);
+      margin-left: auto;
+    }
+    pre {
+      padding: 20px; overflow-x: auto; font-family: var(--mono);
+      font-size: 12.5px; line-height: 1.7; color: #e2e8f0;
+    }
+    pre::-webkit-scrollbar { height: 4px; }
+    pre::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
+
+    /* Syntax highlighting */
+    .kw  { color: #c792ea; }
+    .str { color: #c3e88d; }
+    .num { color: #f78c6c; }
+    .cmt { color: #546e7a; font-style: italic; }
+    .fn  { color: #82aaff; }
+    .cls { color: #ffcb6b; }
+    .xml-tag { color: #f07178; }
+    .xml-attr { color: #ffcb6b; }
+    .xml-val { color: #c3e88d; }
+    .xml-cmt { color: #546e7a; font-style: italic; }
+
+    /* ── Info row ── */
+    .info-row {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;
+    }
+    .info-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; padding: 4px 10px; border-radius: 8px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .info-chip.accent { background: var(--accent-dim); border-color: rgba(189,255,67,0.2); color: var(--accent); }
+    .info-chip.indigo { background: var(--indigo-dim); border-color: rgba(129,140,248,0.2); color: var(--indigo); }
+    .info-chip.red    { background: var(--red-dim);   border-color: rgba(248,113,113,0.2); color: #f87171; }
+    .info-chip.green  { background: var(--green-dim); border-color: rgba(74,222,128,0.2); color: #4ade80; }
+
+    /* ── Before/After ── */
+    .diff-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+    @media (max-width: 700px) { .diff-row { grid-template-columns: 1fr; } }
+    .diff-box {
+      border-radius: 12px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.07);
+    }
+    .diff-label {
+      font-size: 11px; font-weight: 600; padding: 7px 12px;
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .diff-before .diff-label { background: rgba(239,68,68,0.08); color: #f87171; }
+    .diff-after  .diff-label { background: rgba(74,222,128,0.08); color: #4ade80; }
+    .diff-content {
+      padding: 12px; font-family: var(--mono); font-size: 12px;
+      line-height: 1.6; color: var(--text-secondary);
+      background: rgba(0,0,0,0.35);
+    }
+
+    /* ── Layout diagram ── */
+    .layout-diagram {
+      background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px; padding: 20px; margin: 12px 0;
+      font-family: var(--mono); font-size: 12px; line-height: 1.8;
+      color: var(--text-secondary);
+    }
+    .layout-diagram .tree-key { color: var(--accent); }
+    .layout-diagram .tree-id  { color: var(--indigo); }
+    .layout-diagram .tree-w   { color: #f472b6; }
+
+    /* ── Color swatch ── */
+    .swatch-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+    .swatch {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+    }
+    .swatch-dot { width: 24px; height: 24px; border-radius: 7px; flex-shrink: 0; }
+    .swatch-name { font-size: 13px; font-weight: 500; }
+    .swatch-hex  { font-size: 11px; font-family: var(--mono); color: var(--text-secondary); }
+
+    /* ── Checklist ── */
+    .checklist { list-style: none; }
+    .checklist li {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .check-box {
+      width: 17px; height: 17px; border-radius: 5px; flex-shrink: 0;
+      border: 1.5px solid var(--border); margin-top: 1px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .check-box.done { background: #4ade80; border-color: #4ade80; }
+    .check-box.done::after { content: "✓"; font-size: 10px; font-weight: 700; color: #000; }
+    .check-box.pending { border-color: rgba(189,255,67,0.4); }
+
+    /* ── Divider ── */
+    .step-div { height: 1px; background: var(--border); margin: 60px 0; }
+
+    /* ── Note box ── */
+    .note-box {
+      display: flex; gap: 12px; padding: 14px 16px;
+      border-radius: 12px; border: 1px solid rgba(251,191,36,0.2);
+      background: rgba(251,191,36,0.06); margin: 12px 0;
+    }
+    .note-icon { font-size: 16px; flex-shrink: 0; }
+    .note-box p { font-size: 13px; color: rgba(251,191,36,0.9); line-height: 1.55; }
+
+    /* ── Footer ── */
+    footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border); padding: 32px 0;
+      text-align: center; font-size: 12px; color: var(--text-secondary);
+      max-width: 1200px; margin: 0 auto; padding-left: 32px; padding-right: 32px;
+    }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 16px; }
+    .footer-links a { font-size: 13px; color: var(--text-secondary); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="bg-canvas">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+</div>
+<div class="grid-lines"></div>
+<div class="noise"></div>
+
+<nav>
+  <div class="nav-inner">
+    <a href="history.html" class="nav-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      히스토리로
+    </a>
+    <div class="nav-logo">Guidebook<span>App</span> — 세부 계획</div>
+    <div class="nav-steps" id="navSteps">
+      <div class="step-dot active" data-target="step0" title="분석 완료"></div>
+      <div class="step-dot" data-target="stepV" title="검증 결과"></div>
+      <div class="step-dot" data-target="step1" title="Step 1"></div>
+      <div class="step-dot" data-target="step2" title="Step 2"></div>
+      <div class="step-dot" data-target="step3" title="Step 3"></div>
+      <div class="step-dot" data-target="step45" title="Step 4-5"></div>
+      <div class="step-dot" data-target="step6" title="Step 6"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside>
+    <p class="aside-label">목차</p>
+    <ul class="aside-nav">
+      <li><a href="#step0" class="active"><span class="aside-num">✓</span>분석 결과</a></li>
+      <li><a href="#stepV"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>검증 결과</a></li>
+      <li><a href="#step1"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>colors.xml</a></li>
+      <li><a href="#step2"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>Page 1 레이아웃</a></li>
+      <li><a href="#step3"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>Page1Activity</a></li>
+      <li><a href="#step45"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>Page 2 구현</a></li>
+      <li><a href="#step6"><span class="aside-num" style="background:rgba(74,222,128,0.15);color:#4ade80">✓</span>Page 3 버튼</a></li>
+      <li><a href="#verify-detail"><span class="aside-num">✓</span>검증 절차</a></li>
+    </ul>
+  </aside>
+
+  <main>
+
+    <!-- Step 0 — 분석 결과 -->
+    <div class="step-section" id="step0">
+      <div class="step-header">
+        <div class="step-badge done">✓</div>
+        <div class="step-meta">
+          <h2>Figma 디자인 분석 결과</h2>
+          <p>Figma MCP를 통해 추출한 색상, 레이아웃, 구조 정보</p>
+        </div>
+        <span class="step-status done">완료</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-chip accent">Figma 파일: AWxxaehyNVv25A1TjRxCBg</span>
+        <span class="info-chip indigo">계정: ddongtilee@daum.net</span>
+        <span class="info-chip green">연결 성공</span>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🎨</span>
+          <h4>추출된 핵심 색상</h4>
+        </div>
+        <div class="card-body">
+          <div class="swatch-row">
+            <div class="swatch">
+              <div class="swatch-dot" style="background:#BDFF43; box-shadow: 0 0 16px rgba(189,255,67,0.5)"></div>
+              <div>
+                <div class="swatch-name">green_accent</div>
+                <div class="swatch-hex">#BDFF43 · rgb(189,255,67)</div>
+              </div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-dot" style="background:#3F51B5"></div>
+              <div>
+                <div class="swatch-name">primary (기존)</div>
+                <div class="swatch-hex">#3F51B5 · 인디고</div>
+              </div>
+            </div>
+            <div class="swatch">
+              <div class="swatch-dot" style="background:#000000; border: 1px solid rgba(255,255,255,0.2)"></div>
+              <div>
+                <div class="swatch-name">버튼 텍스트</div>
+                <div class="swatch-hex">#000000 (green_accent 위)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">📐</span>
+          <h4>Figma Page 1 패널 구조</h4>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px">
+            원본 Figma: 4개 패널(teacher + student1/2/3)이 219×190px 동일 크기로 수평 배치.<br>
+            사용자 요청: <strong style="color:var(--text)">교사 위쪽 크게 · 학생 아래 작게</strong>
+          </p>
+          <div class="layout-diagram">
+<span class="tree-key">LinearLayout</span> (vertical, #F5F5F5)
+├── <span class="tree-key">header</span>: title + prev/next/logout          (wrap_content)
+├── <span class="tree-key">CardView</span> [문제 이미지]                    (weight=<span class="tree-w">1.2</span>)
+├── <span class="tree-key">CardView</span> [교사 패널]  <span class="tree-id">id=cardTeacher</span>      (weight=<span class="tree-w">0.8</span>)
+│   ├── <span class="tree-key">TextView</span>   <span class="tree-id">id=tvTeacherName</span>
+│   ├── <span class="tree-key">ImageView</span>  <span class="tree-id">id=ivTeacherNote</span>
+│   └── <span class="tree-key">Button</span>     <span class="tree-id">id=btnTeacherWrite</span>   (#BDFF43)
+└── <span class="tree-key">LinearLayout</span> (horizontal)                 (weight=<span class="tree-w">0.6</span>)
+    ├── <span class="tree-key">CardView</span> [학생1] <span class="tree-id">id=cardStudent1</span>     (weight=1)
+    ├── <span class="tree-key">CardView</span> [학생2] <span class="tree-id">id=cardStudent2</span>     (weight=1)
+    └── <span class="tree-key">CardView</span> [학생3] <span class="tree-id">id=cardStudent3</span>     (weight=1)
+</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-div"></div>
+
+    <!-- Step V — 검증 결과 -->
+    <div class="step-section" id="stepV">
+      <div class="step-header">
+        <div class="step-badge done">✓</div>
+        <div class="step-meta">
+          <h2>빌드 및 테스트 검증 결과</h2>
+          <p>2026-05-08 · 선임 기준 사전 검증 완료</p>
+        </div>
+        <span class="step-status done">완료</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-chip green">assembleDebug ✓</span>
+        <span class="info-chip green">단위테스트 전체 ✓</span>
+        <span class="info-chip red">기존 버그 1건 수정</span>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🔨</span>
+          <h4>빌드 결과</h4>
+          <span class="card-header-badge" style="background:rgba(74,222,128,0.12);color:#4ade80">PASS</span>
+        </div>
+        <div class="card-body">
+          <div class="code-wrap">
+            <div class="code-top">
+              <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+              <span class="code-lang">Shell</span>
+            </div>
+            <pre><span class="cmt"># 선행 복구 작업</span>
+git restore .                             <span class="cmt"># working tree 전체 복원</span>
+<span class="cmt"># gradle-wrapper.jar → .claude/worktrees/ 캐시에서 복사</span>
+<span class="cmt"># local.properties → SDK 경로 + 더미 서명값 생성</span>
+
+./gradlew assembleDebug
+<span class="str">BUILD SUCCESSFUL in 30s</span>   <span class="cmt"># 검증 단계</span>
+
+<span class="cmt"># 전체 구현 완료 후 최종 검증</span>
+./gradlew assembleDebug
+<span class="str">BUILD SUCCESSFUL in 21s</span>   <span class="cmt"># 40 tasks: 14 executed, 26 up-to-date</span>
+
+./gradlew test
+<span class="str">BUILD SUCCESSFUL in 22s</span>   <span class="cmt"># 55 tasks: 18 executed, 37 up-to-date</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🐛</span>
+          <h4>발견 및 수정된 기존 버그</h4>
+          <span class="card-header-badge" style="background:rgba(74,222,128,0.12);color:#4ade80">수정 완료</span>
+        </div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
+            <code style="font-size:12px;background:rgba(255,255,255,0.07);padding:2px 6px;border-radius:4px">Page1ViewModelTest.kt</code>
+            — Repository API가 변경됐으나 테스트가 미갱신된 상태
+          </p>
+          <div class="diff-row">
+            <div class="diff-box diff-before">
+              <div class="diff-label">버그 (구 API)</div>
+              <div class="diff-content">coEvery {<br>&nbsp;&nbsp;mockRepo.getProblems()<br>} returns Result.success(...)<br><br>// getProblems()는<br>// 이미 삭제된 메서드</div>
+            </div>
+            <div class="diff-box diff-after">
+              <div class="diff-label">수정 (현재 API)</div>
+              <div class="diff-content">every {<br>&nbsp;&nbsp;mockRepo.observeProblems()<br>} returns flowOf(<br>&nbsp;&nbsp;Result.success(...)<br>)<br>// Flow 기반으로 교체</div>
+            </div>
+          </div>
+          <p style="font-size:12px;color:var(--text-secondary);margin-top:8px">3곳 수정 + <code style="font-size:11px">import kotlinx.coroutines.flow.flowOf</code> 추가</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">⚠️</span>
+          <h4>선임 보고용 — 이번 PR 범위 밖 이슈</h4>
+        </div>
+        <div class="card-body">
+          <ul class="checklist">
+            <li>
+              <div class="check-box" style="border-color:#f87171;background:rgba(239,68,68,0.1)"></div>
+              <div><strong style="color:#f87171">[P0 보안]</strong> Cloudinary <code style="font-size:11px">API_SECRET</code>이 APK에 번들 — <code style="font-size:11px">buildConfigField</code>로 노출. Backend Signed URL 전환 필요.</div>
+            </li>
+            <li>
+              <div class="check-box" style="border-color:#f87171;background:rgba(239,68,68,0.1)"></div>
+              <div><strong style="color:#f87171">[P0 보안]</strong> Firestore 보안 규칙 미검증. 클라이언트 단 권한 체크만 존재.</div>
+            </li>
+            <li>
+              <div class="check-box" style="border-color:#fbbf24;background:rgba(251,191,36,0.08)"></div>
+              <div><strong style="color:#fbbf24">[P1 성능]</strong> Bitmap PNG 압축 시 OOM 위험. Step 5에서 JPEG 75%로 교체 예정.</div>
+            </li>
+            <li>
+              <div class="check-box" style="border-color:#fbbf24;background:rgba(251,191,36,0.08)"></div>
+              <div><strong style="color:#fbbf24">[P1 코드품질]</strong> <code style="font-size:11px">getSerializableExtra()</code> deprecated 경고 3곳.</div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-div"></div>
+
+    <!-- Step 1 -->
+    <div class="step-section" id="step1">
+      <div class="step-header">
+        <div class="step-badge done">✓</div>
+        <div class="step-meta">
+          <h2>colors.xml — green_accent 추가</h2>
+          <p>app/src/main/res/values/colors.xml</p>
+        </div>
+        <span class="step-status done">완료</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-chip">파일 1개 수정</span>
+        <span class="info-chip accent">난이도: 쉬움</span>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">➕</span>
+          <h4>추가할 내용</h4>
+          <span class="card-header-badge">colors.xml</span>
+        </div>
+        <div class="card-body">
+          <div class="code-wrap">
+            <div class="code-top">
+              <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+              <span class="code-lang">XML</span>
+            </div>
+            <pre><span class="xml-cmt">&lt;!-- 기존 colors.xml에 아래 한 줄 추가 --&gt;</span>
+<span class="xml-tag">&lt;color</span> <span class="xml-attr">name</span>=<span class="xml-val">"green_accent"</span><span class="xml-tag">&gt;</span>#BDFF43<span class="xml-tag">&lt;/color&gt;</span></pre>
+          </div>
+          <p style="font-size:12px; color:var(--text-secondary); margin-top:8px">
+            검증: 컴파일 성공 시 Step 2로 이동
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-div"></div>
+
+    <!-- Step 2 -->
+    <div class="step-section" id="step2">
+      <div class="step-header">
+        <div class="step-badge done">✓</div>
+        <div class="step-meta">
+          <h2>activity_page1.xml 재설계</h2>
+          <p>RecyclerView 제거 → 교사 + 학생 고정 레이아웃</p>
+        </div>
+        <span class="step-status done">완료</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-chip red">RecyclerView 제거</span>
+        <span class="info-chip green">고정 7개 뷰 ID 신규</span>
+        <span class="info-chip accent">weight 분배 적용</span>
+      </div>
+
+      <div class="diff-row">
+        <div class="diff-box diff-before">
+          <div class="diff-label">현재 구조</div>
+          <div class="diff-content">LinearLayout (vertical)<br>├─ header<br>├─ CardView [문제이미지]<br>└─ RecyclerView (2×2 grid)<br>&nbsp;&nbsp;&nbsp;id=rvPanels<br>&nbsp;&nbsp;&nbsp;GridLayoutManager(2열)</div>
+        </div>
+        <div class="diff-box diff-after">
+          <div class="diff-label">변경 후 구조</div>
+          <div class="diff-content">LinearLayout (vertical)<br>├─ header<br>├─ CardView [문제이미지]<br>├─ CardView [교사패널] weight=0.8<br>└─ LinearLayout (horizontal) w=0.6<br>&nbsp;&nbsp;├─ CardView [학생1]<br>&nbsp;&nbsp;├─ CardView [학생2]<br>&nbsp;&nbsp;└─ CardView [학생3]</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🆔</span>
+          <h4>신규 뷰 ID 목록</h4>
+        </div>
+        <div class="card-body">
+          <div class="code-wrap">
+            <div class="code-top">
+              <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+              <span class="code-lang">뷰 ID 매핑</span>
+            </div>
+            <pre><span class="cmt">// 교사 패널</span>
+<span class="str">tvTeacherName</span>    — 교사 이름 TextView
+<span class="str">ivTeacherNote</span>    — 교사 노트 이미지 ImageView
+<span class="str">btnTeacherWrite</span>  — 해결포인트 작성 Button (#BDFF43)
+
+<span class="cmt">// 학생 패널 (3개 반복)</span>
+<span class="str">tvStudent1Name</span>   — 학생1 이름
+<span class="str">ivStudent1Note</span>   — 학생1 노트 이미지
+<span class="str">btnStudent1Write</span> — 학생1 버튼 (#BDFF43)
+
+<span class="cmt">// 동일 패턴: Student2, Student3</span>
+<span class="str">btnUploadTeacher</span> — 교사 문제업로드 (visibility=gone)</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="note-box">
+        <span class="note-icon">⚠️</span>
+        <p>교사 패널과 학생 패널의 버튼 모두 <strong>backgroundTint="@color/green_accent"</strong>, <strong>textColor="#000000"</strong> 적용. 기존 인디고(#3F51B5) OutlinedButton 스타일 완전 교체.</p>
+      </div>
+    </div>
+
+    <div class="step-div"></div>
+
+    <!-- Step 3 -->
+    <div class="step-section" id="step3">
+      <div class="step-header">
+        <div class="step-badge done">✓</div>
+        <div class="step-meta">
+          <h2>Page1Activity.kt 수정</h2>
+          <p>RecyclerView/Adapter 제거 → 직접 뷰 바인딩</p>
+        </div>
+        <span class="step-status done">완료</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-chip red">setupRecyclerView() 제거</span>
+        <span class="info-chip red">UserPanelAdapter 제거</span>
+        <span class="info-chip green">직접 바인딩 추가</span>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🔄</span>
+          <h4>observeViewModel() 교체 패턴</h4>
+          <span class="card-header-badge">Kotlin</span>
+        </div>
+        <div class="card-body">
+          <div class="code-wrap">
+            <div class="code-top">
+              <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+              <span class="code-lang">Kotlin</span>
+            </div>
+            <pre><span class="kw">private val</span> participantSlots = <span class="fn">listOf</span>(
+    <span class="str">"teacher"</span>  <span class="kw">to</span> <span class="fn">Triple</span>(binding.tvTeacherName,  binding.ivTeacherNote,  binding.btnTeacherWrite),
+    <span class="str">"student1"</span> <span class="kw">to</span> <span class="fn">Triple</span>(binding.tvStudent1Name, binding.ivStudent1Note, binding.btnStudent1Write),
+    <span class="str">"student2"</span> <span class="kw">to</span> <span class="fn">Triple</span>(binding.tvStudent2Name, binding.ivStudent2Note, binding.btnStudent2Write),
+    <span class="str">"student3"</span> <span class="kw">to</span> <span class="fn">Triple</span>(binding.tvStudent3Name, binding.ivStudent3Note, binding.btnStudent3Write)
+)
+
+viewModel.notes.<span class="fn">observe</span>(this) { notes ->
+    participantSlots.<span class="fn">forEach</span> { (role, views) ->
+        <span class="kw">val</span> (tvName, ivNote, btnWrite) = views
+        <span class="kw">val</span> note = notes.<span class="fn">find</span> { it.role == role }
+        tvName.text = note?.userName ?: role
+        <span class="kw">if</span> (note?.noteImageUrl != <span class="kw">null</span>) {
+            <span class="cls">Glide</span>.<span class="fn">with</span>(this).<span class="fn">load</span>(note.noteImageUrl).<span class="fn">into</span>(ivNote)
+        }
+        <span class="kw">val</span> canEdit = note?.userId == currentUser.uid ||
+            (currentUser.role == <span class="str">"teacher"</span> && role == <span class="str">"teacher"</span>)
+        btnWrite.isEnabled = canEdit
+        btnWrite.<span class="fn">setOnClickListener</span> {
+            <span class="kw">if</span> (canEdit) <span class="fn">navigateToPage2</span>(note)
+        }
+    }
+}</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🗑</span>
+          <h4>제거 대상</h4>
+        </div>
+        <div class="card-body">
+          <ul class="checklist">
+            <li><div class="check-box"></div><code style="font-size:12px">setupRecyclerView()</code> 메서드 전체 삭제</li>
+            <li><div class="check-box"></div><code style="font-size:12px">import RecyclerView, GridLayoutManager</code> 삭제</li>
+            <li><div class="check-box"></div><code style="font-size:12px">import UserPanelAdapter, PanelItem</code> 삭제</li>
+            <li><div class="check-box"></div>파일: <code style="font-size:12px">adapters/UserPanelAdapter.kt</code> 삭제</li>
+            <li><div class="check-box"></div>파일: <code style="font-size:12px">layout/item_user_panel.xml</code> 삭제</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-div"></div>
+
+    <!-- Step 4–5 -->
+    <div class="step-section" id="step45">
+      <div class="step-header">
+        <div class="step-badge done">✓</div>
+        <div class="step-meta">
+          <h2>Page 2 — 드래프트 저장 구현</h2>
+          <p>activity_page2.xml 색상 + Page2Activity.kt 로컬 저장 로직</p>
+        </div>
+        <span class="step-status done">완료</span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-chip">Step 4: XML 색상 변경</span>
+        <span class="info-chip">Step 5: Kotlin 저장 로직</span>
+        <span class="info-chip green">DrawingView.loadBitmap() 추가</span>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">📐</span>
+          <h4>Step 4 — activity_page2.xml btnUpload 색상 변경</h4>
+        </div>
+        <div class="card-body">
+          <div class="diff-row">
+            <div class="diff-box diff-before">
+              <div class="diff-label">현재</div>
+              <div class="diff-content">android:backgroundTint="#3F51B5"<br><br>(기존 인디고 색상)</div>
+            </div>
+            <div class="diff-box diff-after">
+              <div class="diff-label">변경 후</div>
+              <div class="diff-content">android:backgroundTint="@color/green_accent"<br>android:textColor="#000000"</div>
+            </div>
+          </div>
+          <p style="font-size:12px; color:var(--text-secondary); margin-top:8px">
+            btnSaveDraft는 OutlinedButton 스타일 유지 (저장 vs 업로드 시각적 구분)
+          </p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">💾</span>
+          <h4>Step 5 — 로컬 드래프트 저장/불러오기</h4>
+          <span class="card-header-badge">Page2Activity.kt</span>
+        </div>
+        <div class="card-body">
+          <div class="code-wrap">
+            <div class="code-top">
+              <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+              <span class="code-lang">Kotlin</span>
+            </div>
+            <pre><span class="cmt">// 저장 경로: filesDir/drafts/{problemId}_{userId}.png</span>
+<span class="kw">private fun</span> <span class="fn">saveDraftLocally</span>() {
+    <span class="kw">val</span> dir = <span class="cls">File</span>(filesDir, <span class="str">"drafts"</span>).<span class="fn">also</span> { it.<span class="fn">mkdirs</span>() }
+    <span class="kw">val</span> file = <span class="cls">File</span>(dir, <span class="str">"${problemId}_${currentUser.uid}.png"</span>)
+    file.<span class="fn">outputStream</span>().<span class="fn">use</span> { out ->
+        binding.drawingView.<span class="fn">getBitmap</span>()
+            .<span class="fn">compress</span>(<span class="cls">Bitmap.CompressFormat</span>.PNG, <span class="num">100</span>, out)
+    }
+    <span class="cls">Toast</span>.<span class="fn">makeText</span>(this, <span class="str">"임시 저장되었습니다."</span>, <span class="cls">Toast</span>.LENGTH_SHORT).<span class="fn">show</span>()
+}
+
+<span class="kw">private fun</span> <span class="fn">loadDraftIfExists</span>() {
+    <span class="kw">val</span> file = <span class="cls">File</span>(filesDir, <span class="str">"drafts/${problemId}_${currentUser.uid}.png"</span>)
+    <span class="kw">if</span> (file.<span class="fn">exists</span>()) {
+        <span class="kw">val</span> bmp = <span class="cls">BitmapFactory</span>.<span class="fn">decodeFile</span>(file.absolutePath)
+        binding.drawingView.<span class="fn">loadBitmap</span>(bmp)
+    }
+}
+
+<span class="cmt">// onCreate에서 호출</span>
+<span class="fn">loadDraftIfExists</span>()
+binding.btnSaveDraft.<span class="fn">setOnClickListener</span> { <span class="fn">saveDraftLocally</span>() }</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">🖊</span>
+          <h4>DrawingView.kt — loadBitmap() 추가</h4>
+          <span class="card-header-badge">views/DrawingView.kt</span>
+        </div>
+        <div class="card-body">
+          <div class="code-wrap">
+            <div class="code-top">
+              <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+              <span class="code-lang">Kotlin</span>
+            </div>
+            <pre><span class="cmt">// 기존 getBitmap()과 대칭되는 메서드</span>
+<span class="kw">fun</span> <span class="fn">loadBitmap</span>(bitmap: <span class="cls">Bitmap</span>) {
+    canvas.<span class="fn">drawBitmap</span>(bitmap, <span class="num">0f</span>, <span class="num">0f</span>, <span class="kw">null</span>)
+    <span class="fn">invalidate</span>()
+}</pre>
+          </div>
+          <div class="note-box" style="margin-top:12px">
+            <span class="note-icon">ℹ️</span>
+            <p>DrawingView는 오프스크린 Bitmap에 렌더링하므로, 로드된 비트맵을 canvas에 직접 그린 뒤 invalidate()로 화면 갱신.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-div"></div>
+
+    <!-- Step 6 -->
+    <div class="step-section" id="step6">
+      <div class="step-header">
+        <div class="step-badge done">✓</div>
+        <div class="step-meta">
+          <h2>activity_page3.xml 버튼 스타일</h2>
+          <p>문제 업로드 버튼 색상 → green_accent</p>
+        </div>
+        <span class="step-status done">완료</span>
+      </div>
+
+      <div class="diff-row">
+        <div class="diff-box diff-before">
+          <div class="diff-label">현재</div>
+          <div class="diff-content">android:backgroundTint="#3F51B5"<br><br>(인디고 색)</div>
+        </div>
+        <div class="diff-box diff-after">
+          <div class="diff-label">변경 후</div>
+          <div class="diff-content">android:backgroundTint="@color/green_accent"<br>android:textColor="#000000"</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-div"></div>
+
+    <!-- Verification -->
+    <div class="step-section" id="verify-detail">
+      <div class="step-header">
+        <div class="step-badge" style="background:rgba(129,140,248,0.12); border-color:rgba(129,140,248,0.3); color:var(--indigo)">✓</div>
+        <div class="step-meta">
+          <h2>검증 절차 상세</h2>
+          <p>구현 완료 후 순서대로 확인</p>
+        </div>
+      </div>
+
+      <div class="card" style="border-color:rgba(74,222,128,0.2)">
+        <div class="card-header">
+          <span class="card-header-icon">🔨</span>
+          <h4>빌드 검증</h4>
+          <span class="card-header-badge" style="background:rgba(74,222,128,0.12);color:#4ade80">✓ 완료</span>
+        </div>
+        <div class="card-body">
+          <div class="code-wrap">
+            <div class="code-top">
+              <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+              <span class="code-lang">Shell</span>
+            </div>
+            <pre>./gradlew assembleDebug   <span class="str">✓ BUILD SUCCESSFUL in 30s</span>
+./gradlew test            <span class="str">✓ BUILD SUCCESSFUL in 31s</span>
+<span class="cmt"># lint는 구현 완료 후 실행 예정 (미사용 리소스 확인)</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">👩‍🏫</span>
+          <h4>교사 시나리오</h4>
+        </div>
+        <div class="card-body">
+          <ul class="checklist">
+            <li><div class="check-box pending"></div>교사 계정으로 로그인 → Page1 진입</li>
+            <li><div class="check-box pending"></div>교사 패널이 <strong>위쪽에 크게</strong>, 학생 3개 패널이 <strong>아래쪽에 작게</strong> 배치 확인</li>
+            <li><div class="check-box pending"></div>해결포인트작성 버튼이 <strong style="color:var(--accent)">#BDFF43 연두색</strong>으로 표시</li>
+            <li><div class="check-box pending"></div>Page3 이동 → 문제 업로드 버튼 연두색 확인</li>
+            <li><div class="check-box pending"></div>문제 업로드 후 Page1 복귀 확인</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-icon">👨‍🎓</span>
+          <h4>학생 시나리오</h4>
+        </div>
+        <div class="card-body">
+          <ul class="checklist">
+            <li><div class="check-box pending"></div>학생 계정으로 로그인 → Page2 진입</li>
+            <li><div class="check-box pending"></div>드로잉 후 <strong>작성내용 저장하기</strong> 클릭 → Toast 확인</li>
+            <li><div class="check-box pending"></div>Page2 재진입 → <strong>드래프트 자동 로드</strong> 확인</li>
+            <li><div class="check-box pending"></div>업로드 버튼 클릭 → Cloudinary 업로드 완료</li>
+            <li><div class="check-box pending"></div>Page1 복귀 → 학생 패널에 업로드 이미지 반영</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<footer>
+  <div class="footer-links">
+    <a href="history.html">← 히스토리 개요</a>
+    <a href="#step0">↑ 처음으로</a>
+  </div>
+  <strong>GuidebookApp</strong> — 세부 구현 계획 &nbsp;·&nbsp; Branch: new_version &nbsp;·&nbsp; 2026-05-08
+</footer>
+
+<script>
+  // Sidebar scroll tracking
+  const sections = document.querySelectorAll('.step-section');
+  const navLinks = document.querySelectorAll('.aside-nav a');
+  const stepDots = document.querySelectorAll('.step-dot');
+
+  const sectionMap = {
+    'step0': 0, 'stepV': 1, 'step1': 2, 'step2': 3, 'step3': 4, 'step45': 5, 'step6': 6
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navLinks.forEach(a => a.classList.remove('active'));
+        const activeLink = document.querySelector(`.aside-nav a[href="#${id}"]`);
+        if (activeLink) activeLink.classList.add('active');
+
+        const dotIdx = sectionMap[id];
+        if (dotIdx !== undefined) {
+          stepDots.forEach((d, i) => d.classList.toggle('active', i === dotIdx));
+        }
+      }
+    });
+  }, { threshold: 0.25, rootMargin: '-80px 0px -40% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+
+  // Step dot click
+  stepDots.forEach(dot => {
+    dot.addEventListener('click', () => {
+      const target = document.getElementById(dot.dataset.target);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+</script>
+</body>
+</html>

@@ -123,4 +123,9 @@ class DrawingView @JvmOverloads constructor(
         canvasBitmap?.let { c.drawBitmap(it, 0f, 0f, null) }
         return bmp
     }
+
+    fun loadBitmap(bitmap: Bitmap) {
+        drawCanvas?.drawBitmap(bitmap, 0f, 0f, null)
+        invalidate()
+    }
 }

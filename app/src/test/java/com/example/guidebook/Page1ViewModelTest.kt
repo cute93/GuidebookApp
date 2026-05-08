@@ -6,6 +6,7 @@ import com.example.guidebook.models.Problem
 import com.example.guidebook.repository.GuidebookRepository
 import com.example.guidebook.viewmodels.Page1ViewModel
 import io.mockk.*
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -33,13 +34,13 @@ class Page1ViewModelTest {
     }
 
     private fun initWithProblems(vararg problems: Problem) {
-        coEvery { mockRepo.getProblems() } returns Result.success(problems.toList())
+        every { mockRepo.observeProblems() } returns flowOf(Result.success(problems.toList()))
         coEvery { mockRepo.getUserNotes(any()) } returns Result.success(emptyList())
         vm.init(AppUser(uid = "u1", name = "테스트", role = "student"))
     }
 
     @Test fun `currentProblem returns null when problems is empty`() {
-        coEvery { mockRepo.getProblems() } returns Result.success(emptyList())
+        every { mockRepo.observeProblems() } returns flowOf(Result.success(emptyList()))
         vm.init(AppUser(uid = "u1", name = "테스트", role = "student"))
         assertNull(vm.currentProblem)
     }
@@ -81,8 +82,8 @@ class Page1ViewModelTest {
         assertEquals(p1, vm.currentProblem)
     }
 
-    @Test fun `error LiveData is set on getProblems failure`() {
-        coEvery { mockRepo.getProblems() } returns Result.failure(Exception("네트워크 오류"))
+    @Test fun `error LiveData is set on observeProblems failure`() {
+        every { mockRepo.observeProblems() } returns flowOf(Result.failure(Exception("네트워크 오류")))
         vm.init(AppUser(uid = "u1", name = "테스트", role = "student"))
         assertEquals("네트워크 오류", vm.error.value)
     }
